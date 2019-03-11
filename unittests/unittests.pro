@@ -46,6 +46,7 @@ SUBDIRS = \
   test_calc \
   ws_addressing_support \
   default_attribute_value_wsdl
+  list_restriction
 
 # These need internet access
 SUBDIRS += webcalls webcalls_wsdl
