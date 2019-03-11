@@ -28,7 +28,7 @@
 #include "KDSoapAuthentication.h"
 #include "wsdl_Services_noservice.h"
 #include "httpserver_p.h"
-#include <QtTest/QtTest>
+#include <QTest>
 #include <QEventLoop>
 #include <QDebug>
 

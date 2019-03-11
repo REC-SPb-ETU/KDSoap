@@ -27,7 +27,7 @@
 #include "KDSoapAuthentication.h"
 #include "KDDateTime.h"
 #include "httpserver_p.h"
-#include <QtTest/QtTest>
+#include <QTest>
 #include <QDebug>
 
 // Testcase for multiple services defined in one .wsdl file
