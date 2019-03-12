@@ -1039,7 +1039,7 @@ void WsdlDocumentTest::testServerFaultSync() // test the error signals emitted o
     service.addEmployee(KDAB__AddEmployee());
 
     QCOMPARE(service.lastFaultCode(), QString::fromLatin1("Client.Data"));
-    QCOMPARE(service.lastError(), QString::fromLatin1("Fault code Client.Data: Empty employee name (DocServerObject). Error detail: Employee name must not be empty"));
+    QCOMPARE(service.lastError(), QString::fromLatin1("Fault code Client.Data: Empty employee name (DocServerObject)"));
 
     // Sync call doesn't emit signals
     QCOMPARE(soapErrorSpy.count(), 0);
