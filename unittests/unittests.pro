@@ -37,6 +37,8 @@ SUBDIRS = \
   encapsecurity \
   prefix_wsdl \
   vidyo \
+  QSharedPointer_include \
+  QSharedPointer_include/ \
   empty_list_wsdl \
   fault_namespace \
   empty_element_wsdl \
@@ -45,8 +47,9 @@ SUBDIRS = \
   dv_terminalauth \
   test_calc \
   ws_addressing_support \
-  default_attribute_value_wsdl
-  list_restriction
+  default_attribute_value_wsdl \
+  list_restriction \
+  QSharedPointer_include
 
 # These need internet access
 SUBDIRS += webcalls webcalls_wsdl
