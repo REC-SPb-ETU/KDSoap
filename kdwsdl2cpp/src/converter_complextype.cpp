@@ -275,7 +275,7 @@ void Converter::convertComplexType(const XSD::ComplexType *type)
         }
     }
 
-    newClass.addInclude("QSharedPointer");
+    newClass.addHeaderInclude("QSharedPointer");
     mClasses.addClass(newClass);
 }
 
