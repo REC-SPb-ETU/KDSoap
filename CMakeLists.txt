@@ -240,5 +240,11 @@ add_custom_target(rpm
   COMMAND cpack -G RPM
 )
 
+add_custom_target(srpm
+  COMMAND rm *.rpm -f
+  COMMAND cpack -G RPM --config ./CPackSourceConfig.cmake
+)
 
+
+set(CPACK_SOURCE_IGNORE_FILES "build//|/.git")
 include(CPack)
