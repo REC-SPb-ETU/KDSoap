@@ -106,5 +106,8 @@ if(KDSoap_IS_ROOT_PROJECT)
     LIBRARY NAMELINK_SKIP
     COMPONENT core
     )
+    
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ldconfig.conf.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME_FOR_INSTALL}.conf @ONLY)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME_FOR_INSTALL}.conf DESTINATION "/etc/ld.so.conf.d" COMPONENT core)
 
 endif()

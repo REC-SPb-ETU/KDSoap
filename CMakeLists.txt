@@ -164,6 +164,8 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   )
 endif()
 
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+
 add_subdirectory(src)
 add_subdirectory(kdwsdl2cpp)
 if(${PROJECT_NAME}_IS_ROOT_PROJECT)
@@ -185,7 +187,6 @@ endif()
 set(PROJECT_VERSION ${${PROJECT_NAME}_VERSION})
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME_FOR_INSTALL})
-set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
 set(CPACK_PACKAGE_VENDOR "Klaralvdalens Datakonsult AB (KDAB) && R&EC SPb ETU")
 
 ### RPM ################################################################################################
@@ -199,7 +200,7 @@ set(CPACK_RPM_PACKAGE_GROUP "System Environment/Libraries")
 set(CPACK_RPM_PACKAGE_URL "http://github.com/REC-SPb-ETU/KDSoap")
 set(CPACK_RPM_PACKAGE_LICENSE "LGPL-2.1+")
 
-set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "${CPACK_PACKAGING_INSTALL_PREFIX}/${INSTALL_LIBRARY_DIR}/cmake")
+set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION ${CPACK_PACKAGING_INSTALL_PREFIX}/${INSTALL_LIBRARY_DIR}/cmake /etc/ld.so.conf.d)
 set(CPACK_RPM_SOURCE_PKG_PACKAGING_INSTALL_PREFIX ${CPACK_PACKAGING_INSTALL_PREFIX})
 
 if(${PROJECT_NAME}_ENFORCE_QT4_BUILD)
@@ -209,6 +210,10 @@ else()
 endif()    
 
 set(CPACK_RPM_devel_PACKAGE_REQUIRES "kdsoap-${QT_VERSION}-core = ${PROJECT_VERSION} kdsoap-${QT_VERSION}-server = ${PROJECT_VERSION}")
+
+set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/ldconfig/post_install_script.sh")
+set(CPACK_RPM_POST_UNINSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/ldconfig/post_uninstall_script.sh")
+
 
 ### DEB ################################################################################################
 
@@ -228,6 +233,8 @@ set(CPACK_DEBIAN_DEVEL_PACKAGE_DEPENDS "kdsoap-${QT_VERSION}-core (= ${PROJECT_V
 # Explicit dependencies because of CPackDEB can't process component interdependency with dpkg-shlibdeps correctly
 # https://gitlab.kitware.com/cmake/cmake/issues/17447
 set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "kdsoap-${QT_VERSION}-core (= ${PROJECT_VERSION})")
+
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_SOURCE_DIR}/ldconfig/postinst;${CMAKE_SOURCE_DIR}/ldconfig/postrm")
 
 # LD_LIBRARY_PATH because of https://gitlab.kitware.com/cmake/cmake/issues/17447
 add_custom_target(deb
