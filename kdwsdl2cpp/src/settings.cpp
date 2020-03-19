@@ -39,11 +39,22 @@ Q_GLOBAL_STATIC(SettingsSingleton, s_settings)
 Settings::Settings()
 {
     mOutputDirectory = QDir::current().path();
-    mOutputFileName = QString::fromLatin1("kwsdl_generated");
+    mHeaderFileName = QString::fromLatin1("kwsdl_generated");
+    mImplementationFileName = QString::fromLatin1("kwsdl_generated");
     mImpl = false;
     mServer = false;
     mKeepUnusedTypes = false;
     mOptionalElementType = Settings::ENone;
+}
+
+bool Settings::useLocalFilesOnly() const
+{
+    return mUseLocalFilesOnly;
+}
+
+void Settings::setUseLocalFilesOnly(bool useLocalFilesOnly)
+{
+    mUseLocalFilesOnly = useLocalFilesOnly;
 }
 
 Settings::~Settings()
@@ -91,19 +102,14 @@ QString Settings::wsdlFileName() const
     return strUrl.mid(strUrl.lastIndexOf(QLatin1Char('/')) + 1);
 }
 
-void Settings::setOutputFileName(const QString &outputFileName)
+void Settings::setHeaderFileName(const QString &headerFileName)
 {
-    mOutputFileName = outputFileName;
+    mHeaderFileName = headerFileName;
 }
 
-QString Settings::outputFileName() const
+void Settings::setImplementationFileName(const QString &implementationFileName)
 {
-    if (mOutputFileName.isEmpty()) {
-        QFileInfo fi(wsdlFileName());
-        return QLatin1String("wsdl_") + fi.completeBaseName() + QLatin1String(mImpl ? ".cpp" : ".h");
-    }
-
-    return mOutputFileName;
+    mImplementationFileName = implementationFileName;
 }
 
 void Settings::setOutputDirectory(const QString &outputDirectory)
@@ -150,10 +156,9 @@ Settings::NSMapping Settings::namespaceMapping() const
     return mNamespaceMapping;
 }
 
-void Settings::setGenerateImplementation(bool b, const QString &headerFile)
+void Settings::setGenerateImplementation(bool b)
 {
     mImpl = b;
-    mHeaderFile = headerFile;
 }
 
 bool Settings::generateImplementation() const
@@ -161,10 +166,26 @@ bool Settings::generateImplementation() const
     return mImpl;
 }
 
-QString Settings::headerFile() const
+void Settings::setGenerateHeader(bool b)
 {
-    return mHeaderFile;
+    mHeader = b;
 }
+
+bool Settings::generateHeader() const
+{
+    return mHeader;
+}
+
+QString Settings::headerFileName() const
+{
+    return mHeaderFileName;
+}
+
+QString Settings::implementationFileName() const
+{
+    return mImplementationFileName;
+}
+
 
 void Settings::setWantedService(const QString &service)
 {
@@ -205,3 +226,76 @@ void Settings::setNameSpace(const QString &ns)
 {
     mNameSpace = ns;
 }
+
+QStringList Settings::importPathList() const
+{
+    return mImportPathList;
+}
+
+void Settings::setImportPathList(const QStringList &importPathList)
+{
+    mImportPathList = importPathList;
+    if (mWsdlUrl.isLocalFile()) {
+        QFileInfo wsdlFileInfo(mWsdlUrl.toLocalFile());
+        QString wsdlDirPath = wsdlFileInfo.absolutePath();
+        mImportPathList.prepend(wsdlDirPath);
+    }
+}
+
+void Settings::setHelpOnMissing(bool b)
+{
+    mHelpOnMissing = b;
+}
+
+bool Settings::helpOnMissing() const
+{
+    return mHelpOnMissing;
+}
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
+bool Settings::loadCertificate(const QString &certPath, const QString & password)
+{
+    QFile certFile(certPath);
+    if (certFile.open(QFile::ReadOnly)) {
+        mCertificateLoaded = QSslCertificate::importPkcs12(&certFile,
+                                                     &mSslKey,
+                                                     &mCertificate,
+                                                     &mCaCertificates,
+                                                     password.toLocal8Bit());
+        certFile.close();
+        if (!mCertificateLoaded) {
+            fprintf(stderr, "Unable to load the %s certificate file\n",
+                    certPath.toLocal8Bit().constData());
+            if (!password.isEmpty())
+                fprintf(stderr, "Please make sure that you have passed the correct password\n");
+            else
+                fprintf(stderr, "Maybe it is password protected?\n");
+        }
+        return mCertificateLoaded;
+    } else {
+        fprintf(stderr, "Failed to open the %s certificate file for reading\n",
+                certPath.toLocal8Bit().constData());
+    }
+    return false;
+}
+
+QList<QSslCertificate> Settings::caCertificates() const
+{
+    return mCaCertificates;
+}
+
+QSslCertificate Settings::certificate() const
+{
+    return mCertificate;
+}
+
+QSslKey Settings::sslKey() const
+{
+    return mSslKey;
+}
+
+bool Settings::certificateLoaded() const
+{
+    return mCertificateLoaded;
+}
+#endif

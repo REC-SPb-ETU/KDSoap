@@ -394,7 +394,7 @@ static bool classLessThan(const Class& c1, const Class& c2)
 static Class::List sortByDependenciesHelper( const Class::List &classes, const QStringList& excludedClasses )
 {
     Class::List allClasses( classes );
-    qSort(allClasses.begin(), allClasses.end(), classLessThan); // make result deterministic
+    std::sort(allClasses.begin(), allClasses.end(), classLessThan); // make result deterministic
 
     QStringList allClassNames;
     Q_FOREACH( const Class& c, allClasses )
@@ -454,14 +454,14 @@ void ClassList::sortByDependencies( const QStringList& excludedClasses )
 
 void ClassList::sortAlphabetically()
 {
-    qSort(begin(), end(), classLessThan);
+    std::sort(begin(), end(), classLessThan);
 }
 
-ClassList::iterator ClassList::findClass(const QString &name)
+ClassList::const_iterator ClassList::findClass(const QString &qualifiedName) const
 {
-    ClassList::iterator it = begin();
+    ClassList::const_iterator it = begin();
     for (; it != end(); ++it)
-        if ((*it).name() == name)
+        if ((*it).qualifiedName() == qualifiedName)
             break;
     return it;
 }

@@ -44,11 +44,16 @@ public:
 
   struct DefaultAttributeValue
   {
-    DefaultAttributeValue(): mIsBuiltin(false) {
-    }
+    DefaultAttributeValue(bool isBuiltin = false, const QString& value = QString()):
+        mIsBuiltin(isBuiltin),
+        mValue(value) { }
 
     bool mIsBuiltin;
     QString mValue;
+
+    bool isNull() const {
+        return mValue.isNull();
+    }
   };
 
     Converter();

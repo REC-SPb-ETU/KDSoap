@@ -136,38 +136,6 @@ void Parser::init(ParserContext *context)
         langAttr.setType(QName(XMLSchemaURI, QLatin1String("string")));
         d->mAttributes.append(langAttr);
     }
-
-    // From http://schemas.xmlsoap.org/wsdl/soap/encoding
-    {
-        ComplexType array(soapEncNs);
-        array.setArrayType(QName(XMLSchemaURI, QString::fromLatin1("any")));
-        array.setName(QLatin1String("Array"));
-        d->mComplexTypes.append(array);
-    }
-
-    // From http://schemas.xmlsoap.org/soap/encoding/, so that <attribute ref="soap-enc:arrayType" arrayType="kdab:EmployeeAchievement[]"/>
-    // can be resolved.
-    {
-        Attribute arrayTypeAttr(soapEncNs);
-        arrayTypeAttr.setName(QLatin1String("arrayType"));
-        arrayTypeAttr.setType(QName(XMLSchemaURI, QLatin1String("string")));
-        d->mAttributes.append(arrayTypeAttr);
-    }
-
-    // Same thing, but for SOAP-1.2: from http://www.w3.org/2003/05/soap-encoding
-    {
-        ComplexType array(soap12EncNs);
-        array.setArrayType(QName(XMLSchemaURI, QString::fromLatin1("any")));
-        array.setName(QLatin1String("Array"));
-        d->mComplexTypes.append(array);
-    }
-    {
-        Attribute arrayTypeAttr(soap12EncNs);
-        arrayTypeAttr.setName(QLatin1String("arrayType"));
-        arrayTypeAttr.setType(QName(XMLSchemaURI, QLatin1String("string")));
-        d->mAttributes.append(arrayTypeAttr);
-    }
-    d->mImportedSchemas.append(NSManager::soapEncNamespaces());
 }
 
 bool Parser::parseSchemaTag(ParserContext *context, const QDomElement &root)
@@ -244,7 +212,7 @@ bool Parser::parseSchemaTag(ParserContext *context, const QDomElement &root)
 
 void Parser::parseImport(ParserContext *context, const QDomElement &element)
 {
-    // http://www.w3.org/TR/2004/REC-xmlschema-1-20041028/structures.html#layer2
+    // https://www.w3.org/TR/2004/REC-xmlschema-1-20041028/structures.html#layer2
     // The actual value of its namespace [attribute] indicates that the containing schema document may contain qualified references to schema components in that namespace (via one or more prefixes declared with namespace declarations in the normal way).
     QString expectedNamespace = element.attribute(QLatin1String("namespace"));
 
@@ -467,7 +435,7 @@ Element Parser::parseElement(ParserContext *context,
         qDebug() << "newElement namespace=" << nameSpace << "name=" << newElement.name() << "defaultQualified=" << d->mDefaultQualifiedElements;
     }
 
-    // http://www.w3.org/TR/xmlschema-0/#NS
+    // https://www.w3.org/TR/xmlschema-0/#NS
     if (element.hasAttribute(QLatin1String("form"))) {
         newElement.setIsQualified(element.attribute(QLatin1String("form")) == QLatin1String("qualified"));
     } else {
@@ -487,7 +455,7 @@ Element Parser::parseElement(ParserContext *context,
     newElement.setNillable(stringToBoolean(element.attribute(QLatin1String("nillable"))));
 
     if (element.hasAttribute(QLatin1String("type"))) {
-        QName typeName(element.attribute(QLatin1String("type")));
+        QName typeName(element.attribute(QLatin1String("type")).trimmed());
         typeName.setNameSpace(context->namespaceManager()->uri(typeName.prefix()));
         if (debugParsing()) {
             qDebug() << "typeName=" << typeName.qname() << "namespace=" << context->namespaceManager()->uri(typeName.prefix());
@@ -566,7 +534,6 @@ void Parser::setSubstitutionElementName(const QName &typeName, const QName &elem
     XSD::ComplexType::List::iterator ctit = d->mComplexTypes.findComplexType(typeName);
     if (ctit != d->mComplexTypes.end()) {
         // If this type already has an element name associated, they are aliases, any one will do.
-        // (see http://www.w3schools.com/schema/schema_complex_subst.asp)
         (*ctit).setSubstitutionElementName(elemName);
     } else {
         XSD::SimpleType::List::iterator stit = d->mSimpleTypes.findSimpleType(typeName);
@@ -624,7 +591,7 @@ Attribute Parser::parseAttribute(ParserContext *context,
         newAttribute.setType(typeName);
     }
 
-    // http://www.w3.org/TR/xmlschema-0/#NS
+    // https://www.w3.org/TR/xmlschema-0/#NS
     if (element.hasAttribute(QLatin1String("form"))) {
         newAttribute.setIsQualified(element.attribute(QLatin1String("form")) == QLatin1String("qualified"));
     } else {
@@ -673,7 +640,7 @@ Attribute Parser::parseAttribute(ParserContext *context,
     }
 
     if (newAttribute.type().isEmpty() && !element.hasAttribute(QLatin1String("ref"))) {
-        // http://www.w3.org/TR/2004/REC-xmlschema-1-20041028/structures.html#element-attribute
+        // https://www.w3.org/TR/2004/REC-xmlschema-1-20041028/structures.html#element-attribute
         // says "otherwise the simple ur-type definition", which is anySimpleType
         newAttribute.setType(QName(XMLSchemaURI, QLatin1String("anySimpleType")));
         qDebug() << "found attribute" << newAttribute.name() << "without type and without ref, set to default" << newAttribute.type();
@@ -800,10 +767,6 @@ void Parser::parseComplexContent(ParserContext *context, const QDomElement &elem
             typeName = childElement.attribute(QLatin1String("base"));
             typeName.setNameSpace(context->namespaceManager()->uri(typeName.prefix()));
 
-            if (typeName != QName(XMLSchemaURI, QString::fromLatin1("anyType"))) { // ignore this
-                complexType.setBaseTypeName(typeName);
-            }
-
             // if the base soapenc:Array, then read the arrayType attribute, and possibly the desired name for the child elements
             // TODO check namespace is really soap-encoding
             if (typeName.localName() == QLatin1String("Array")) {
@@ -860,6 +823,11 @@ void Parser::parseComplexContent(ParserContext *context, const QDomElement &elem
                 }
 
             } else {
+
+                if (typeName != QName(XMLSchemaURI, QString::fromLatin1("anyType"))) { // don't do this for anyType or Array
+                    complexType.setBaseTypeName(typeName);
+                }
+
                 QDomElement ctElement = childElement.firstChildElement();
                 while (!ctElement.isNull()) {
                     NSManager namespaceManager(context, ctElement);
@@ -1011,7 +979,7 @@ AttributeGroup Parser::parseAttributeGroup(ParserContext *context, const QDomEle
     return group;
 }
 
-// <group> http://www.w3.org/TR/xmlschema-0/#ref17
+// <group> https://www.w3.org/TR/xmlschema-0/#ref17
 Group Parser::parseGroup(ParserContext *context, const QDomElement &element, const QString &nameSpace)
 {
     Element::List elements;
@@ -1029,7 +997,7 @@ Group Parser::parseGroup(ParserContext *context, const QDomElement &element, con
         const QString localName = childName.localName();
         // can contain all, choice or sequence
         if (localName == QLatin1String("sequence") || localName == QLatin1String("choice")) {
-            parseCompositor(context, e, nameSpace, &elements, NULL /*can't nest groups*/);
+            parseCompositor(context, e, nameSpace, &elements, nullptr /*can't nest groups*/);
         } else if (localName == QLatin1String("all")) {
             qWarning() << "Unsupported element in group:" << localName; // TODO
         } else {
@@ -1064,15 +1032,11 @@ static QUrl urlForLocation(ParserContext *context, const QString &location)
     return url;
 }
 
-// Note: http://www.w3.org/TR/xmlschema-0/#schemaLocation paragraph 3 (for <import>) says
+// Note: https://www.w3.org/TR/xmlschema-0/#schemaLocation paragraph 3 (for <import>) says
 // "schemaLocation is only a hint"
 void Parser::importSchema(ParserContext *context, const QString &location)
 {
-    // Ignore this one, we have it built into the typemap
-    if (location == soapEncNs) {
-        return;
-    }
-    // Ignore this one, we don't need it, and it relies on soap/encoding
+    // Ignore this one, we don't need it
     if (location == QLatin1String("http://schemas.xmlsoap.org/wsdl/")) {
         return;
     }

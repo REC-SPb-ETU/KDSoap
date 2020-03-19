@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -41,6 +41,11 @@ public:
     static QString soapEncoding();
     static QString soapEncoding200305();
     static QString soapMessageAddressing();
+    static QString soapSecurityExtention();
+    static QString soapSecurityUtility();
+    static QString soapMessageAddressing200303();
+    static QString soapMessageAddressing200403();
+    static QString soapMessageAddressing200408();
 
 private: // TODO instantiate to handle custom namespaces per clientinterface
     KDSoapNamespaceManager();

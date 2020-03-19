@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -48,7 +48,7 @@ void KDSoapPendingCallWatcher::waitForFinished()
 void KDSoapPendingCallWatcher::Private::_kd_slotReplyFinished()
 {
     // Workaround Qt-4.5 emitting finished twice in testCallRefusedAuth
-    disconnect(q->KDSoapPendingCall::d->reply.data(), SIGNAL(finished()), q, 0);
+    disconnect(q->KDSoapPendingCall::d->reply.data(), SIGNAL(finished()), q, nullptr);
     emit q->finished(q);
 }
 

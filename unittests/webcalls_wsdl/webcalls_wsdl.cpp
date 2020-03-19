@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -22,13 +22,11 @@
 **********************************************************************/
 
 #include "KDSoapClientInterface.h"
-//#include "KDSoapMessage.h"
-//#include "KDSoapValue.h"
-#include "wsdl_soapresponder.h"
-#include "wsdl_holidays.h"
+#include "wsdl_BLZService.h"
 #include "wsdl_BFGlobalService.h"
 #include "wsdl_OrteLookup.h"
 #include <QTest>
+#include <QSignalSpy>
 #include <QEventLoop>
 #include <QDebug>
 
@@ -39,24 +37,24 @@ public:
 
 private slots:
 
-#if 0 // www.soapclient.com is down...
+#if 0 // 2020-12-02 bad example, it's returning malformed XML!
     // Soap in RPC mode; using WSDL-generated class
     // http://www.soapclient.com/soapclient?fn=soapform&template=/clientform.html&soaptemplate=/soapresult.html&soapwsdl=http://soapclient.com/xml/soapresponder.wsdl
     void testSoapResponder_sync()
     {
-        SoapResponder responder;
+        EmptySA responder;
         responder.setSoapVersion(KDSoapClientInterface::SOAP1_2);
-        QString ret = responder.method1(QLatin1String("abc"), QLatin1String("def"));
+        QString ret = responder.echoString(QLatin1String("abc"));
         QCOMPARE(ret, QString::fromLatin1("Your input parameters are abc and def"));
     }
 
     void testSoapResponder_async()
     {
-        SoapResponder responder;
-        QSignalSpy spyDone(&responder, SIGNAL(method1Done(QString)));
+        EmptySA responder;
+        QSignalSpy spyDone(&responder, SIGNAL(echoStringDone(QString)));
         QEventLoop eventLoop;
-        connect(&responder, SIGNAL(method1Done(QString)), &eventLoop, SLOT(quit()));
-        responder.asyncMethod1(QLatin1String("abc"), QLatin1String("def"));
+        connect(&responder, SIGNAL(echoStringDone(QString)), &eventLoop, SLOT(quit()));
+        responder.asyncEchoString(QLatin1String("abc"));
         eventLoop.exec();
         QCOMPARE(spyDone.count(), 1);
         QCOMPARE(spyDone[0][0].toString(), QString::fromLatin1("Your input parameters are abc and def"));
@@ -65,30 +63,33 @@ private slots:
 
     // Soap in Document mode.
 
-    void testHolidays_wsdl_soap()
+#if 0 // 2020-02-12: http://www.thomas-bayer.com/axis2/services/BLZService?wsdl is down
+    void testBLZService_wsdl_soap()
     {
-        const int year = 2009;
-        USHolidayDates holidays;
-        TNS__GetValentinesDay parameters;
-        parameters.setYear(year);
-        TNS__GetValentinesDayResponse response = holidays.getValentinesDay(parameters);
-        qDebug() << response.getValentinesDayResult();
-        const QString dateString = response.getValentinesDayResult().date().toString(Qt::ISODate);
-        QCOMPARE(dateString, QString::fromLatin1("2009-02-14"));
+        BLZService::BLZServiceSOAP11Binding service;
+        TNS__GetBankType getBankType;
+        getBankType.setBlz("20130600"); // found on http://www.thebankcodes.com/blz/bybankname.php
+        TNS__GetBankResponseType response = service.getBank(getBankType);
+        QCOMPARE(response.details().bic(), QString::fromLatin1("BARCDEH1XXX"));
+        QCOMPARE(response.details().bezeichnung(), QString::fromLatin1("Barclaycard Barclays Bank"));
+        QCOMPARE(response.details().ort(), QString::fromLatin1("Hamburg"));
+        QCOMPARE(response.details().plz(), QString::fromLatin1("22702"));
     }
 
     void testParallelAsyncRequests()
     {
-        USHolidayDates holidays;
-        QStringList expectedResults;
-        for (int year = 2007; year < 2010; ++year) {
-            TNS__GetValentinesDay parameters;
-            parameters.setYear(year);
-            holidays.asyncGetValentinesDay(parameters);
-            expectedResults += QString::fromLatin1("%1-02-14T00:00:00").arg(year);
+        BLZService::BLZServiceSOAP11Binding service;
+        const QStringList expectedResults = {"BARCDEH1XXX", "BEBEDEBBXXX", "BEVODEBBXXX"};
+
+        for (const char* blz : { "10020000", "20130600", "10090000" }) {
+            TNS__GetBankType getBankType;
+            getBankType.setBlz(QString::fromLatin1(blz));
+            service.asyncGetBank(getBankType);
         }
-        connect(&holidays, SIGNAL(getValentinesDayDone(TNS__GetValentinesDayResponse)),
-                this,  SLOT(slotGetValentinesDayDone(TNS__GetValentinesDayResponse)));
+        connect(&service, SIGNAL(getBankDone(TNS__GetBankResponseType)),
+                this, SLOT(slotGetBankDone(TNS__GetBankResponseType)));
+        connect(&service, SIGNAL(getBankError(KDSoapMessage)),
+                this, SLOT(slotGetBankError(KDSoapMessage)));
         m_eventLoop.exec();
 
         //qDebug() << m_resultsReceived;
@@ -97,6 +98,7 @@ private slots:
         m_resultsReceived.sort();
         QCOMPARE(m_resultsReceived, expectedResults);
     }
+#endif
 
     void testBetFair() // SOAP-14
     {
@@ -135,13 +137,18 @@ private slots:
         QCOMPARE(resp.orteStartWithResult(), QString::fromLatin1("Berlin;Berlstedt"));
     }
 
-    // TODO: a great example for complex returned structures:
-    // http://www.holidaywebservice.com/Holidays/HolidayService.asmx?op=GetHolidaysForYear
-
 protected slots:
-    void slotGetValentinesDayDone(const TNS__GetValentinesDayResponse &response)
+    void slotGetBankDone(const TNS__GetBankResponseType &response)
     {
-        m_resultsReceived << response.getValentinesDayResult().toString(Qt::ISODate);
+        m_resultsReceived << response.details().bic();
+        if (m_resultsReceived.count() == 3) {
+            m_eventLoop.quit();
+        }
+    }
+
+    void slotGetBankError(const KDSoapMessage &msg)
+    {
+        m_resultsReceived << msg.faultAsString();
         if (m_resultsReceived.count() == 3) {
             m_eventLoop.quit();
         }

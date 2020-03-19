@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -27,7 +27,7 @@
 #include "KDSoapSslHandler.h"
 
 KDSoapSslHandler::KDSoapSslHandler(QObject *parent)
-    : QObject(parent), m_reply(0)
+    : QObject(parent), m_reply(nullptr)
 {
 }
 

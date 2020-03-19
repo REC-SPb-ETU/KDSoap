@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -227,7 +227,7 @@ public:
      * Sets the .wsdl file that users can download from the soap server.
      * \param file relative or absolute path to the .wsdl file (including the filename), on disk
      * \param pathInUrl that clients can use in order to download the file:
-     *                  for instance "/files/myservice.wsdl" for "http://myserver.example.com/files/myservice.wsdl" as final URL.
+     *                  for instance "/files/myservice.wsdl" for "https://myserver.example.com/files/myservice.wsdl" as final URL.
      */
     void setWsdlFile(const QString &file, const QString &pathInUrl);
 
@@ -275,9 +275,9 @@ Q_SIGNALS:
 
 protected:
 #if QT_VERSION >= QT_VERSION_CHECK(5,0,0)
-    /*! \reimp \internal */ void incomingConnection(qintptr socketDescriptor);
+    /*! \reimp \internal */ void incomingConnection(qintptr socketDescriptor) override;
 #else
-    /*! \reimp \internal */ void incomingConnection(int socketDescriptor);
+    /*! \reimp \internal */ void incomingConnection(int socketDescriptor) override;
 #endif
 
 private:

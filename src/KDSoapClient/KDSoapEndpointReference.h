@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2015-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2015-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -34,7 +34,7 @@ class KDSoapEndpointReferenceData;
  * KDSoapEndpointReference is the abstraction class to hold
  * an Endpoint Reference properties.
  *
- * \see: http://www.w3.org/TR/ws-addr-core/#eprinfoset
+ * \see: https://www.w3.org/TR/ws-addr-core/#eprinfoset
  * \since 1.5
  */
 class KDSOAP_EXPORT KDSoapEndpointReference

@@ -7,7 +7,7 @@ QT += xml
 
 CONFIG += console
 macx:CONFIG -= app_bundle
-static { macx:QMAKE_LFLAGS += -Wl,-rpath,$$[QT_INSTALL_LIBS] }
+static:macx:QMAKE_LFLAGS += -Wl,-rpath,$$[QT_INSTALL_LIBS]
 
 # Relink when a static lib changed
 unix:PRE_TARGETDEPS += $${TOP_BUILD_DIR}/lib/libkode.a \
@@ -19,11 +19,9 @@ unix:PRE_TARGETDEPS += $${TOP_BUILD_DIR}/lib/libkode.a \
 win32-msvc*:PRE_TARGETDEPS += $${TOP_BUILD_DIR}/lib/kode.lib \
     $${TOP_BUILD_DIR}/lib/wsdl.lib \
     $${TOP_BUILD_DIR}/lib/xmlschema.lib \
-    $${TOP_BUILD_DIR}/lib/xmlcommon.lib \
-    $${TOP_BUILD_DIR}/lib/libkdwsdl2cpp_lib.lib
-
+    $${TOP_BUILD_DIR}/lib/xmlcommon.lib
 LIBS += -L$${TOP_BUILD_DIR}/lib \
-    -lkdwsdl2cpp_lib \
+    -l$${KDWSDL2CPP_LIB} \
     -lkode \
     -lwsdl \
     -lxmlschema \

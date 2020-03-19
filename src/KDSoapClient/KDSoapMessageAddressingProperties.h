@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -40,7 +40,7 @@ class KDSoapMessageAddressingPropertiesData;
  * Relationship between two soap messages.
  * This class is composed of two QStrings: one represents the type of the relation, the other represents the message ID of the message it refers to.
  *
- * \see http://www.w3.org/TR/ws-addr-core/#msgaddrpropsinfoset
+ * \see https://www.w3.org/TR/ws-addr-core/#msgaddrpropsinfoset
  * \since 1.5
  */
 namespace KDSoapMessageRelationship
@@ -56,7 +56,8 @@ struct Relationship {
      * Relationship constructor
      * @param URI is supposed to represent a message ID of a previous message you want to make reference to
      * @param type represents the nature of the relation between messages, if none is provided, the following
-     * predefined address will be used http://www.w3.org/2005/08/addressing/reply
+     * predefined address will be used wsa:Reply (which is dependent on the selected namespace, for example
+     * https://www.w3.org/TR/2006/REC-ws-addr-core-20060509)
      */
     Relationship(const QString &URI, const QString &type = QString())
         : uri(URI), relationshipType(type) {}
@@ -74,7 +75,7 @@ struct Relationship {
  * to have in the soap header and associate to a given message using
  * \see KDSoapMessage::setMessageAddressingProperties
  *
- * \see http://www.w3.org/TR/ws-addr-core/#abstractmaps
+ * \see https://www.w3.org/TR/ws-addr-core/#abstractmaps
  * Important: This class does not ensure any kind of validation to the data being passed to it
  * \since 1.5
  */
@@ -83,6 +84,7 @@ class KDSOAP_EXPORT KDSoapMessageAddressingProperties
 {
 public:
     friend class KDSoapMessageWriter;
+    friend class KDSoapMessageReader;
 
     /**
      * This enum contains all the predefined addresses defined by the ws addressing specification
@@ -94,6 +96,19 @@ public:
         Anonymous,
         Reply,
         Unspecified
+    };
+
+    /**
+     * This enum contains all the namespaces that can be used to send out WS-Addressing messages.
+     * This allows the application to select the WS-Addressing revision to be used.
+     * \since 1.9
+     * \see setAddressingNamespace
+     */
+    enum KDSoapAddressingNamespace {
+        Addressing200303,
+        Addressing200403,
+        Addressing200408,
+        Addressing200508
     };
 
     /**
@@ -266,15 +281,45 @@ public:
     void addMetadata(const KDSoapValue &metadata);
 
     /**
-     * Helper function that takes the \p address enum to provide the QString equivalent
+     * Returns the selected WS-Addressing namespace
+     * \since 1.9
      */
-    static QString predefinedAddressToString(KDSoapAddressingPredefinedAddress address);
+    KDSoapAddressingNamespace addressingNamespace() const;
+
+    /**
+     * Sets the WS-Addressing namespace to be used for sending out messages.This allows the
+     * application to select the WS-Addressing revision to be used.
+     * \since 1.9
+     * \see KDSoapAddressingNamespace
+     */
+    void setAddressingNamespace(KDSoapAddressingNamespace addressingNamespace);
+
+    /**
+     * Helper function that takes the \p address enum and \p addressingNamespace to provide the QString equivalent
+     */
+    static QString predefinedAddressToString(KDSoapAddressingPredefinedAddress address, KDSoapAddressingNamespace addressingNamespace = Addressing200508);
+
+    /**
+     * Helper function that compares \p namespaceUri with the known WS-Addressing namespaces
+     */
+    static bool isWSAddressingNamespace(const QString& namespaceUri);
+
+    /**
+     * Helper function that takes the \p addressingNamespace enum to provide the QString equivalent
+     * \since 1.9
+     */
+    static QString addressingNamespaceToString(KDSoapAddressingNamespace addressingNamespace);
 
 private:
     /**
      * Private method called to write the properties to the soap header, using QXmlStreamWriter
      */
     void writeMessageAddressingProperties(KDSoapNamespacePrefixes &namespacePrefixes, QXmlStreamWriter &writer, const QString &messageNamespace, bool forceQualified) const;
+
+    /**
+     * Private method called to read a property from a soap header
+     */
+    void readMessageAddressingProperty(const KDSoapValue& value);
 
 private:
     QSharedDataPointer<KDSoapMessageAddressingPropertiesData> d;

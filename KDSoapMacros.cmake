@@ -1,10 +1,12 @@
-# Copyright (c) 2011-2018 Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
+# Copyright (c) 2011-2020 Klarälvdalens Datakonsult AB, a KDAB Group company <info@kdab.com>
 
 # Redistribution and use is allowed according to the terms of the BSD license.
 
 macro( KDSOAP_GENERATE_WSDL _sources )
   set(KDWSDL2CPP kdwsdl2cpp)
-  if (TARGET KDSoap::kdwsdl2cpp)
+  if (KDSOAP_KDWSDL2CPP_COMPILER)
+    set(KDWSDL2CPP ${KDSOAP_KDWSDL2CPP_COMPILER})
+  elseif (TARGET KDSoap::kdwsdl2cpp)
     set(KDWSDL2CPP KDSoap::kdwsdl2cpp)
   endif()
   set(_KSWSDL2CPP_OPTION)
@@ -27,6 +29,8 @@ macro( KDSOAP_GENERATE_WSDL _sources )
        ARGS ${_KSWSDL2CPP_OPTION} -impl ${_header_wsdl_FILE} ${_tmp_FILE} -o ${_source_wsdl_FILE}
        MAIN_DEPENDENCY ${_tmp_FILE} ${_header_wsdl_FILE}
        DEPENDS ${_tmp_FILE} ${KDWSDL2CPP} )
+
+    set_source_files_properties(${_header_wsdl_FILE} ${_source_wsdl_FILE} PROPERTIES SKIP_AUTOMOC ON)
 
     if (Qt5Core_FOUND)
        qt5_wrap_cpp(_sources_MOCS ${_header_wsdl_FILE})

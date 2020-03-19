@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -36,8 +36,8 @@ class KDSoapServer::Private
 {
 public:
     Private()
-        : m_threadPool(0),
-          m_mainThreadSocketList(0),
+        : m_threadPool(nullptr),
+          m_mainThreadSocketList(nullptr),
           m_use(KDSoapMessage::LiteralUse),
           m_logLevel(KDSoapServer::LogNothing),
           m_path(QString::fromLatin1("/")),
@@ -154,6 +154,7 @@ KDSoapThreadPool *KDSoapServer::threadPool() const
 
 QString KDSoapServer::endPoint() const
 {
+    QMutexLocker lock(&d->m_serverDataMutex);
     const QHostAddress address = serverAddress();
     if (address == QHostAddress::Null) {
         return QString();
@@ -207,7 +208,10 @@ void KDSoapServer::log(const QByteArray &text)
     }
 
     QMutexLocker lock(&d->m_logMutex);
-    if (!d->m_logFile.isOpen() && !d->m_logFileName.isEmpty()) {
+    if (d->m_logFileName.isEmpty()) {
+        return;
+    }
+    if (!d->m_logFile.isOpen()) {
         d->m_logFile.setFileName(d->m_logFileName);
         if (!d->m_logFile.open(QIODevice::Append)) {
             qCritical("Could not open log file for writing: %s", qPrintable(d->m_logFileName));
@@ -353,11 +357,13 @@ int KDSoapServer::maxConnections() const
 
 void KDSoapServer::setFeatures(Features features)
 {
+    QMutexLocker lock(&d->m_serverDataMutex);
     d->m_features = features;
 }
 
 KDSoapServer::Features KDSoapServer::features() const
 {
+    QMutexLocker lock(&d->m_serverDataMutex);
     return d->m_features;
 }
 
