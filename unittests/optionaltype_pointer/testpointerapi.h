@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2014-2018 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2014-2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** Author: Ville Voutilainen <ville.voutilainen gmail.com>
@@ -37,6 +37,8 @@ public:
 private slots:
     void test();
     void testOptionalArray();
+    void testPolymorphic();
+    void testSerialize();
 
 private:
 };

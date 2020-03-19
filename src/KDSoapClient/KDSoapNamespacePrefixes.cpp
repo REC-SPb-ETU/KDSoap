@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -25,13 +25,14 @@
 #include "KDSoapNamespaceManager.h"
 
 void KDSoapNamespacePrefixes::writeStandardNamespaces(QXmlStreamWriter &writer,
-        KDSoapClientInterface::SoapVersion version,
-        bool messageAddressingEnabled)
+        KDSoap::SoapVersion version,
+        bool messageAddressingEnabled,
+        KDSoapMessageAddressingProperties::KDSoapAddressingNamespace messageAddressingNamespace)
 {
-    if (version == KDSoapClientInterface::SOAP1_1) {
+    if (version == KDSoap::SOAP1_1) {
         writeNamespace(writer, KDSoapNamespaceManager::soapEnvelope(), QLatin1String("soap"));
         writeNamespace(writer, KDSoapNamespaceManager::soapEncoding(), QLatin1String("soap-enc"));
-    } else if (version == KDSoapClientInterface::SOAP1_2) {
+    } else if (version == KDSoap::SOAP1_2) {
         writeNamespace(writer, KDSoapNamespaceManager::soapEnvelope200305(), QLatin1String("soap"));
         writeNamespace(writer, KDSoapNamespaceManager::soapEncoding200305(), QLatin1String("soap-enc"));
     }
@@ -40,7 +41,8 @@ void KDSoapNamespacePrefixes::writeStandardNamespaces(QXmlStreamWriter &writer,
     writeNamespace(writer, KDSoapNamespaceManager::xmlSchemaInstance2001(), QLatin1String("xsi"));
 
     if (messageAddressingEnabled) {
-        writeNamespace(writer, KDSoapNamespaceManager::soapMessageAddressing(), QLatin1String("wsa"));
+        const QString addressingNS = KDSoapMessageAddressingProperties::addressingNamespaceToString(messageAddressingNamespace);
+        writeNamespace(writer, addressingNS, QLatin1String("wsa"));
     }
 
     // Also insert known variants

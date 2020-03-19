@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -192,12 +192,12 @@ public:
      * \param version #SOAP1_1 or #SOAP1_2
      * The default version is SOAP 1.1.
      */
-    void setSoapVersion(SoapVersion version);
+    void setSoapVersion(KDSoapClientInterface::SoapVersion version);
 
     /**
      * Returns the version of SOAP being used in this instance.
      */
-    SoapVersion soapVersion();
+    KDSoapClientInterface::SoapVersion soapVersion() const;
 
     /**
      * Returns the end point of the SOAP service.
@@ -252,7 +252,7 @@ public:
 
     /**
      * WSDL style. See the "style" attribute for soap:binding, in the WSDL file.
-     * See http://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/ for a discussion
+     * See https://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/ for a discussion
      * on the pros and cons of both styles.
      *
      * In RPC style, the method name passed to call() or asyncCall() is sent as an xml element
@@ -331,6 +331,20 @@ public:
      */
     void setSslConfiguration(const QSslConfiguration &config);
 #endif
+
+    /**
+      * Returns the timeout used for requests, in milliseconds.
+      * The default timeout is 30 minutes.
+      * \since 1.8
+      */
+    int timeout() const;
+
+    /**
+      * Sets the timeout used for future requests, in milliseconds.
+      * A negative value disables the timeout feature.
+      * \since 1.8
+      */
+    void setTimeout(int msecs);
 
 private:
     friend class KDSoapThreadTask;

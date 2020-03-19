@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -761,13 +761,13 @@ class NameServiceServerObject : public NamesServiceServiceServerBase /* generate
 {
     Q_OBJECT
 public:
-    virtual TNS__GetCountriesResponse getCountries(const TNS__GetCountries &)
+    virtual TNS__GetCountriesResponse getCountries(const TNS__GetCountries &) override
     {
         TNS__GetCountriesResponse response;
         response.setCountry(QStringList() << QLatin1String("Great Britain") << QLatin1String("Ireland"));
         return response;
     }
-    TNS__GetNamesInCountryResponse getNamesInCountry(const TNS__GetNamesInCountry &parameters)
+    TNS__GetNamesInCountryResponse getNamesInCountry(const TNS__GetNamesInCountry &parameters) override
     {
         TNS__GetNamesInCountryResponse response;
         if (parameters.country() == QLatin1String("Ireland")) {
@@ -777,7 +777,7 @@ public:
     }
 
     void getNameInfoResponse(const KDSoapDelayedResponseHandle &responseHandle, const TNS__GetNameInfoResponse &ret);
-    virtual TNS__GetNameInfoResponse getNameInfo(const TNS__GetNameInfo &parameters)
+    virtual TNS__GetNameInfoResponse getNameInfo(const TNS__GetNameInfo &parameters) override
     {
         setFault(QLatin1String("Server.Implementation"), QLatin1String("Not implemented"), QLatin1String(metaObject()->className()), parameters.name());
         return TNS__GetNameInfoResponse();
@@ -788,7 +788,7 @@ class DocServerObject : public MyWsdlDocumentServerBase /* generated from mywsdl
 {
     Q_OBJECT
 public:
-    QByteArray addEmployee(const KDAB__AddEmployee &parameters)
+    QByteArray addEmployee(const KDAB__AddEmployee &parameters) override
     {
         //qDebug() << "addEmployee called";
         const QString name = KDAB__LimitedString(parameters.employeeName()).value();
@@ -810,7 +810,7 @@ public:
         return "added " + name.toLatin1();
     }
 
-    QByteArray delayedAddEmployee(const KDAB__AddEmployee &parameters)
+    QByteArray delayedAddEmployee(const KDAB__AddEmployee &parameters) override
     {
         //qDebug() << "delayedAddEmployee called";
         Q_UNUSED(parameters);
@@ -822,23 +822,23 @@ public:
         return "THIS VALUE IS IGNORED";
     }
 
-    void listEmployees()
+    void listEmployees() override
     {
         m_lastMethodCalled = QLatin1String("listEmployees");
     }
-    void heart_beat()
+    void heart_beat() override
     {
         m_lastMethodCalled = QLatin1String("heartbeat");
     }
 
-    KDAB__AnyTypeResponse testAnyType(const KDAB__AnyType &parameters)
+    KDAB__AnyTypeResponse testAnyType(const KDAB__AnyType &parameters) override
     {
         KDAB__AnyTypeResponse response;
         response.setReturn(QList<KDSoapValue>() << parameters.input());
         return response;
     }
 
-    KDAB__EmployeeCountryResponse getEmployeeCountry(const KDAB__EmployeeNameParams &employeeNameParams)
+    KDAB__EmployeeCountryResponse getEmployeeCountry(const KDAB__EmployeeNameParams &employeeNameParams) override
     {
         KDAB__EmployeeCountryResponse resp;
         if (QString(employeeNameParams.employeeName().value()) == QLatin1String("David")) {
@@ -849,7 +849,7 @@ public:
         return resp;
     }
 
-    KDAB__EmployeeType getEmployeeType(const KDAB__EmployeeNameParams &employeeNameParams)
+    KDAB__EmployeeType getEmployeeType(const KDAB__EmployeeNameParams &employeeNameParams) override
     {
         KDAB__EmployeeType type;
         type.setWeakType(QVariant(42)); // anySimpleType was mapped to QVariant
@@ -859,12 +859,12 @@ public:
         return type;
     }
 
-    KDAB__TelegramType sendRawTelegram(const KDAB__TelegramType &telegram)
+    KDAB__TelegramType sendRawTelegram(const KDAB__TelegramType &telegram) override
     {
         return QByteArray("Got ") + telegram;
     }
 
-    KDAB__TelegramResponse sendTelegram(const KDAB__TelegramRequest &parameters)
+    KDAB__TelegramResponse sendTelegram(const KDAB__TelegramRequest &parameters) override
     {
         KDAB__TelegramResponse resp;
         resp.setTelegramHex(QByteArray("Received ") + parameters.telegramHex());
@@ -873,7 +873,7 @@ public:
     }
 
     // Normally you don't reimplement this. This is just to store req and resp for the unittest.
-    void processRequest(const KDSoapMessage &request, KDSoapMessage &response, const QByteArray &soapAction)
+    void processRequest(const KDSoapMessage &request, KDSoapMessage &response, const QByteArray &soapAction) override
     {
         m_request = request;
         MyWsdlDocumentServerBase::processRequest(request, response, soapAction);
@@ -881,7 +881,7 @@ public:
         //qDebug() << "processRequest: done. " << this << "Response name=" << response.name();
     }
 
-    void processRequestWithPath(const KDSoapMessage &request, KDSoapMessage &response, const QByteArray &soapAction, const QString &path)
+    void processRequestWithPath(const KDSoapMessage &request, KDSoapMessage &response, const QByteArray &soapAction, const QString &path) override
     {
         Q_UNUSED(request);
         Q_UNUSED(response);
@@ -919,7 +919,7 @@ public:
     {
         setPath(QLatin1String("/xml"));
     }
-    virtual QObject *createServerObject()
+    virtual QObject *createServerObject() override
     {
         m_lastServerObject = new DocServerObject;
         return m_lastServerObject;
@@ -1039,7 +1039,7 @@ void WsdlDocumentTest::testServerFaultSync() // test the error signals emitted o
     service.addEmployee(KDAB__AddEmployee());
 
     QCOMPARE(service.lastFaultCode(), QString::fromLatin1("Client.Data"));
-    QCOMPARE(service.lastError(), QString::fromLatin1("Fault code Client.Data: Empty employee name (DocServerObject)"));
+    QCOMPARE(service.lastError(), QString::fromLatin1("Fault code Client.Data: Empty employee name (DocServerObject). Error detail: Employee name must not be empty"));
 
     // Sync call doesn't emit signals
     QCOMPARE(soapErrorSpy.count(), 0);
@@ -1064,7 +1064,7 @@ void WsdlDocumentTest::testServerFaultAsync() // test the error signals emitted 
     QCOMPARE(addEmployeeErrorSpy.count(), 1);
     QCOMPARE(soapErrorSpy[0][0].toString(), QString::fromLatin1("addEmployee"));
     KDSoapMessage msg = soapErrorSpy[0][1].value<KDSoapMessage>();
-    QCOMPARE(msg.faultAsString(), QString::fromLatin1("Fault code Client.Data: Empty employee name (DocServerObject)"));
+    QCOMPARE(msg.faultAsString(), QString::fromLatin1("Fault code Client.Data: Empty employee name (DocServerObject). Error detail: Employee name must not be empty"));
 }
 
 void WsdlDocumentTest::testSendTelegram()
@@ -1085,7 +1085,7 @@ void WsdlDocumentTest::testSendTelegram()
 
     // Check the request as received by the server.
     const QByteArray expectedRequestXml =
-        QByteArray(xmlBegin) + "<TelegramRequest " + xmlNamespaces + ">"
+        QByteArray(xmlBegin) + "<TelegramRequest " + xmlNamespaces + " xmlns:n1=\"http://www.kdab.com/xml/MyWsdl/\">"
         "<TelegramHex>48656c6c6f</TelegramHex>"
         "<TelegramBase64>SGVsbG8=</TelegramBase64>"
         "</TelegramRequest>";
@@ -1255,7 +1255,7 @@ void WsdlDocumentTest::testServerDifferentPathFault()
     TNS__GetNameInfo req;
     req.setName(QLatin1String("DOESNOTEXIST"));
     const TNS__NameInfo names = serv.getNameInfo(req).nameinfo();
-    QCOMPARE(serv.lastError(), QLatin1String("Fault code Server.Implementation: Not implemented (NameServiceServerObject)"));
+    QCOMPARE(serv.lastError(), QLatin1String("Fault code Server.Implementation: Not implemented (NameServiceServerObject). Error detail: DOESNOTEXIST"));
 }
 
 QTEST_MAIN(WsdlDocumentTest)

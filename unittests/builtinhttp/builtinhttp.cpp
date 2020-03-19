@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -77,6 +77,21 @@ private Q_SLOTS:
 #else
         QCOMPARE(ret.faultAsString(), QString::fromLatin1(
                      "Fault code 203: Error downloading %1 - server replied: Not Found").arg(server.endPoint()));
+#endif
+#if QT_VERSION >= QT_VERSION_CHECK(5, 6, 0)
+        QCOMPARE(QString::fromLatin1(ret.toXml().constData()), QLatin1String(
+                     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                     "<soap:Fault xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:soap-enc=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">"
+                      "<faultcode>203</faultcode>"
+                      "<faultstring>Error transferring ") + server.endPoint() + QLatin1String(" - server replied: Not Found</faultstring>"
+                     "</soap:Fault>\n"));
+#else
+        QCOMPARE(QString::fromLatin1(ret.toXml().constData()), QLatin1String(
+                     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                     "<soap:Fault xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:soap-enc=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">"
+                      "<faultcode>203</faultcode>"
+                      "<faultstring>Error downloading ") + server.endPoint() + QLatin1String(" - server replied: Not Found</faultstring>"
+                     "</soap:Fault>\n"));
 #endif
     }
 
@@ -205,7 +220,6 @@ private Q_SLOTS:
             QCOMPARE(server.header("Cookie").constData(), "biscuits=\"are good\"");
 #endif
             QCOMPARE(ret.arguments().child(QLatin1String("employeeCountry")).value().toString(), QString::fromLatin1("France"));
-
         }
         client.setSoapVersion(KDSoapClientInterface::SOAP1_2);
         {
@@ -370,7 +384,6 @@ private Q_SLOTS:
         QCOMPARE(id.value().toString(), QString::fromLatin1("12345"));
         const KDSoapValue error = lst.at(1);
         QCOMPARE(error.name(), QString::fromLatin1("error"));
-        // cppcheck-suppress redundantCopyLocalConst
         const KDSoapValueList errorList = error.childValues();
         QCOMPARE(errorList.count(), 3);
         const KDSoapValue number = errorList.at(0);
@@ -446,7 +459,6 @@ private:
         connect(watcher, SIGNAL(finished(KDSoapPendingCallWatcher*)),
                 &loop, SLOT(quit()));
         loop.exec();
-
     }
 
     static QByteArray emptyResponse()

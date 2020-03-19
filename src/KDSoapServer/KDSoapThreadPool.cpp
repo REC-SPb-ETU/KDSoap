@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -71,10 +71,10 @@ int KDSoapThreadPool::maxThreadCount() const
 
 KDSoapServerThread *KDSoapThreadPool::Private::chooseNextThread()
 {
-    KDSoapServerThread *chosenThread = 0;
+    KDSoapServerThread *chosenThread = nullptr;
     // Try to pick an existing thread
     int minSocketCount = 0;
-    KDSoapServerThread *bestThread = 0;
+    KDSoapServerThread *bestThread = nullptr;
     ThreadCollection::const_iterator it = m_threads.constBegin();
     for (; it != m_threads.constEnd(); ++it) {
         KDSoapServerThread *thr = *it;
@@ -103,7 +103,7 @@ KDSoapServerThread *KDSoapThreadPool::Private::chooseNextThread()
 
     // Create new thread
     if (!chosenThread) {
-        chosenThread = new KDSoapServerThread(0);
+        chosenThread = new KDSoapServerThread(nullptr);
         //qDebug() << "Creating KDSoapServerThread" << chosenThread;
         m_threads.append(chosenThread);
         chosenThread->startThread();

@@ -28,11 +28,14 @@ set(SOURCES
   KDSoapFaultException.cpp
   KDSoapMessageAddressingProperties.cpp
   KDSoapEndpointReference.cpp
+  KDQName.cpp
+  KDSoapUdpClient.cpp
 )
 
 add_library(kdsoap ${KDSoap_LIBRARY_MODE} ${SOURCES})
 target_link_libraries(kdsoap ${QT_LIBRARIES})
-set_target_properties(kdsoap PROPERTIES VERSION ${${PROJECT_NAME}_VERSION} SOVERSION ${${PROJECT_NAME}_VERSION_MAJOR} OUTPUT_NAME kdsoap-${QT_VERSION})
+set_target_properties(kdsoap PROPERTIES VERSION ${${PROJECT_NAME}_VERSION} SOVERSION ${${PROJECT_NAME}_VERSION_MAJOR})
+target_include_directories(kdsoap INTERFACE "$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/${INSTALL_INCLUDE_DIR}>")
 
 # append d to debug libraries for windows builds
 if(WIN32)
@@ -67,6 +70,8 @@ if(KDSoap_IS_ROOT_PROJECT)
       KDSoapEndpointReference
       KDSoapPendingCall
       KDSoapAuthentication
+      KDQName
+      KDSoapUdpClient
     COMMON_HEADER
       KDSoapClient
   )
@@ -88,26 +93,15 @@ if(KDSoap_IS_ROOT_PROJECT)
     KDSoapFaultException.h
     KDSoapMessageAddressingProperties.h
     KDSoapEndpointReference.h
-    DESTINATION ${INSTALL_INCLUDE_DIR}/${PROJECT_NAME_FOR_INSTALL}/KDSoapClient COMPONENT devel
+    KDQName.h
+    KDSoapUdpClient.h
+    DESTINATION ${INSTALL_INCLUDE_DIR}/KDSoapClient
   )
 
   install(TARGETS kdsoap EXPORT KDSoapTargets
-    RUNTIME DESTINATION ${INSTALL_RUNTIME_DIR}/${PROJECT_NAME_FOR_INSTALL}
-    LIBRARY DESTINATION ${INSTALL_LIBRARY_DIR}/${PROJECT_NAME_FOR_INSTALL}
-    ARCHIVE DESTINATION ${INSTALL_ARCHIVE_DIR}/${PROJECT_NAME_FOR_INSTALL}
-    LIBRARY NAMELINK_ONLY
-    COMPONENT devel
+    RUNTIME DESTINATION ${INSTALL_RUNTIME_DIR}
+    LIBRARY DESTINATION ${INSTALL_LIBRARY_DIR}
+    ARCHIVE DESTINATION ${INSTALL_ARCHIVE_DIR}
     )
-    
-  install(TARGETS kdsoap EXPORT KDSoapTargets
-    RUNTIME DESTINATION ${INSTALL_RUNTIME_DIR}/${PROJECT_NAME_FOR_INSTALL}
-    LIBRARY DESTINATION ${INSTALL_LIBRARY_DIR}/${PROJECT_NAME_FOR_INSTALL}
-    ARCHIVE DESTINATION ${INSTALL_ARCHIVE_DIR}/${PROJECT_NAME_FOR_INSTALL}
-    LIBRARY NAMELINK_SKIP
-    COMPONENT core
-    )
-    
-  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ldconfig.conf.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME_FOR_INSTALL}.conf @ONLY)
-  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME_FOR_INSTALL}.conf DESTINATION "/etc/ld.so.conf.d" COMPONENT core)
 
 endif()

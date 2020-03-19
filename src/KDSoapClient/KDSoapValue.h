@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -30,6 +30,7 @@
 #include <QtCore/QSet>
 #include <QtCore/QVector>
 #include <QtCore/QSharedDataPointer>
+#include <QtCore/QXmlStreamNamespaceDeclarations>
 #include "KDSoapGlobal.h"
 
 #ifndef QT_NO_STL
@@ -46,6 +47,20 @@ class KDSoapNamespacePrefixes;
 QT_BEGIN_NAMESPACE
 class QXmlStreamWriter;
 QT_END_NAMESPACE
+
+namespace KDSoap {
+/**
+ * Version of the SOAP protocol to use when sending requests.
+ * This enum value is used in KDSoapMessage.
+ * For historical reasons, KDSoapClientInterface uses its own version enum.
+ */
+enum SoapVersion {
+    /** Use format version 1.1 of the SOAP specification */
+    SOAP1_1 = 1,
+    /** Use format version 1.2 of the SOAP specification */
+    SOAP1_2 = 2
+};
+}
 
 /**
  * KDSoapValue represents a value in a SOAP argument list.
@@ -134,7 +149,7 @@ public:
 
     /**
      * Write out xsi:nil if the KDSoapValue has no content.
-     * See http://www.w3.org/TR/xmlschema-1/#xsi_nil
+     * See https://www.w3.org/TR/xmlschema-1/#xsi_nil
      */
     void setNillable(bool nillable);
 
@@ -227,6 +242,43 @@ public:
     QString type() const;
 
     /**
+     * Sets the \p namespaceDeclarations of this value.
+     * \since 1.8
+     */
+    void setNamespaceDeclarations(const QXmlStreamNamespaceDeclarations& namespaceDeclarations);
+
+    /**
+     * Adds a \p namespaceDeclaration to the existing list of namespaceDeclarations.
+     * \since 1.8
+     */
+    void addNamespaceDeclaration(const QXmlStreamNamespaceDeclaration& namespaceDeclaration);
+
+    /**
+     * Returns the namespaceDeclarations of this value as it was during parsing of the message
+     * \since 1.8
+     */
+    QXmlStreamNamespaceDeclarations namespaceDeclarations() const;
+
+    /**
+     * Sets the \p environmentNamespaceDeclarations of this value.
+     * \since 1.8
+     */
+    void setEnvironmentNamespaceDeclarations(const QXmlStreamNamespaceDeclarations& environmentNamespaceDeclarations);
+
+    /**
+     * Returns the namespaceDeclarations of this value and its parents combined as it was during parsing of the message
+     * \since 1.8
+     */
+    QXmlStreamNamespaceDeclarations environmentNamespaceDeclarations() const;
+
+    /**
+     * Returns the list of split values.
+     * The data is split on spaces and the properties are copied.
+     * \since 1.8
+     */
+    KDSoapValueList split() const;
+
+    /**
      * Defines the way the message should be serialized.
      * See the "use" attribute for soap:body, in the WSDL file.
      */
@@ -236,6 +288,10 @@ public:
     };
 
     QByteArray toXml(Use use = LiteralUse, const QString &messageNamespace = QString()) const;
+
+protected: // for KDSoapMessage
+
+    void setName(const QString &name);
 
 private:
     // To catch mistakes
@@ -250,7 +306,9 @@ private:
     QSharedDataPointer<Private> d;
 };
 
+QT_BEGIN_NAMESPACE
 Q_DECLARE_TYPEINFO(KDSoapValue, Q_MOVABLE_TYPE);
+QT_END_NAMESPACE
 
 KDSOAP_EXPORT QDebug operator <<(QDebug dbg, const KDSoapValue &value);
 

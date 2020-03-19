@@ -106,6 +106,8 @@ bool Converter::convertClientService()
             newClass.addHeaderInclude(QLatin1String("KDSoapClient/KDSoapClientInterface.h"));
             if (Settings::self()->optionalElementType() == Settings::EBoostOptional) {
                 newClass.addHeaderInclude(QLatin1String("boost/optional.hpp"));
+            } else if (Settings::self()->optionalElementType() == Settings::EStdOptional) {
+                newClass.addHeaderInclude(QLatin1String("optional"));
             }
 
             // Files included in the impl, with optional forward-declarations in the header
@@ -116,7 +118,7 @@ bool Converter::convertClientService()
 
             // Variables (which will go into the d pointer)
             KODE::MemberVariable clientInterfaceVar(QLatin1String("m_clientInterface"), QLatin1String("KDSoapClientInterface*"));
-            clientInterfaceVar.setInitializer(QLatin1String("NULL"));
+            clientInterfaceVar.setInitializer(QLatin1String("nullptr"));
             newClass.addMemberVariable(clientInterfaceVar);
 
             KODE::MemberVariable lastReply(QLatin1String("m_lastReply"), QLatin1String("KDSoapMessage"));
@@ -128,7 +130,7 @@ bool Converter::convertClientService()
             // Ctor and dtor
             {
                 KODE::Function ctor(newClass.name());
-                ctor.addArgument(KODE::Function::Argument(QLatin1String("QObject* _parent"), QLatin1String("0")));
+                ctor.addArgument(KODE::Function::Argument(QLatin1String("QObject* _parent"), QLatin1String("nullptr")));
                 ctor.addInitializer(QLatin1String("QObject(_parent)"));
                 KODE::Function dtor(QLatin1Char('~') + newClass.name());
                 KODE::Code ctorCode, dtorCode;
@@ -164,6 +166,16 @@ bool Converter::convertClientService()
                 setEndPoint.setDocs(QLatin1String("Overwrite the end point defined in the .wsdl file, with another http/https URL."));
                 newClass.addFunction(setEndPoint);
             }
+            // endPoint() accessor
+            {
+                KODE::Function getEndPoint(QLatin1String("endPoint"), QLatin1String("QString"));
+                getEndPoint.setConst(true);
+                KODE::Code code;
+                code += "return d_ptr->m_endPoint;";
+                getEndPoint.setBody(code);
+                getEndPoint.setDocs(QLatin1String("Return the end point that will be used."));
+                newClass.addFunction(getEndPoint);
+            }
             //setSoapVersion() method
             {
                 KODE::Function setSoapVersion(QLatin1String("setSoapVersion"), QLatin1String("void"));
@@ -174,6 +186,16 @@ bool Converter::convertClientService()
                 setSoapVersion.setDocs(QLatin1String("Overwrite the soap version defined in the .wsdl file, with another version. \n"
                                                      "version can be KDSoapClientInterface::SOAP1_1 or KDSoapClientInterface::SOAP1_2"));
                 newClass.addFunction(setSoapVersion);
+            }
+            //soapVersion() method
+            {
+                KODE::Function getSoapVersion(QLatin1String("soapVersion"), QLatin1String("KDSoapClientInterface::SoapVersion"));
+                getSoapVersion.setConst(true);
+                KODE::Code code;
+                code += "return clientInterface()->soapVersion();";
+                getSoapVersion.setBody(code);
+                getSoapVersion.setDocs(QLatin1String("Return the soap version used.n"));
+                newClass.addFunction(getSoapVersion);
             }
             // lastErrorCode() method (which mistakenly returns an int, see github issue #166)
             {
@@ -331,6 +353,9 @@ bool Converter::convertClientService()
 
                 const QString operationName = operation.name();
                 KODE::Class jobClass(KODE::Style::className(operation.name()) + QLatin1String("Job"), jobsNamespace);
+                if (mClasses.findClass(jobClass.qualifiedName()) != mClasses.constEnd()) {
+                    jobClass.setName(KODE::Style::className(className /*binding name*/ + jobClass.name()));
+                }
                 jobClass.addInclude(QString(), fullyQualified(newClass));
                 jobClass.addHeaderInclude(QLatin1String("KDSoapClient/KDSoapJob.h"));
                 if (!Settings::self()->exportDeclaration().isEmpty()) {
@@ -344,7 +369,7 @@ bool Converter::convertClientService()
 
                 KODE::Function ctor(jobClass.name());
                 ctor.addArgument(KODE::Function::Argument(QString::fromLatin1("%1* service").arg(fullyQualified(newClass))));
-                ctor.addArgument(KODE::Function::Argument(QLatin1String("QObject* _parent"), QLatin1String("0")));
+                ctor.addArgument(KODE::Function::Argument(QLatin1String("QObject* _parent"), QLatin1String("nullptr")));
                 ctor.addInitializer(QLatin1String("KDSoapJob(_parent)"));
                 ctor.addInitializer(QLatin1String("mService(service)"));
 
@@ -388,6 +413,7 @@ bool Converter::convertClientService()
                 }
 
                 KODE::Function doStart(QLatin1String("doStart"), QLatin1String("void"), KODE::Function::Protected);
+                doStart.setVirtualMode(KODE::Function::Override);
                 KODE::Code doStartCode;
                 const bool hasAction = clientAddAction(doStartCode, binding, operationName);
                 clientGenerateMessage(doStartCode, binding, message, operation, /*use members=*/true);
@@ -396,6 +422,7 @@ bool Converter::convertClientService()
                 if (hasAction) {
                     callLine += QLatin1String(", action");
                 }
+                callLine += QLatin1String(", requestHeaders()");
                 callLine += QLatin1String(");");
                 doStartCode += callLine;
 
@@ -545,7 +572,7 @@ void Converter::addMessageArgument(KODE::Code &code, const SoapBinding::Style &b
 {
     const QString partname = varIsMember ? QLatin1Char('m') + upperlize(localVariableName) : mNameMapper.escape(lowerlize(localVariableName));
     // In document style, the "part" is directly added as arguments
-    // See http://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/
+    // See https://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/
     if (bindingStyle == SoapBinding::DocumentStyle) {
         code.addBlock(serializePart(part, partname, messageName, false));
     } else {
@@ -599,13 +626,13 @@ KODE::Code Converter::deserializeRetVal(const KWSDL::Part &part, const QString &
     const bool isComplex = mTypeMap.isComplexType(part.type(), part.element());
     const bool isPolymorphic = mTypeMap.isPolymorphic(part.type(), part.element());
     if (isBuiltin) {
-        code += varName + QLatin1String(" = ") + mTypeMap.deserializeBuiltin(part.type(), part.element(), replyMsgName + QLatin1String(".value()"), qtRetType) + QLatin1String(";") + COMMENT;
+        code += varName + QLatin1String(" = ") + mTypeMap.deserializeBuiltin(part.type(), part.element(), replyMsgName, qtRetType) + QLatin1String(";") + COMMENT;
     } else if (isComplex) {
         const QString op = isPolymorphic ? "->" : ".";
         code += varName + op + QLatin1String("deserialize(") + replyMsgName + QLatin1String(");") + COMMENT;
     } else {
         // testcase: MyWsdlDocument::sendTelegram
-        code += varName + QLatin1String(".deserialize(") + replyMsgName + QLatin1String(".value());") + COMMENT;
+        code += varName + QLatin1String(".deserialize(") + replyMsgName + QLatin1String(");") + COMMENT;
     }
     return code;
 }
@@ -637,7 +664,7 @@ bool Converter::convertClientCall(const Operation &operation, const Binding &bin
     const int numReturnValues = outParts.count();
 
     if (numReturnValues == 1) {
-        const Part retPart = outParts.first();
+        const Part &retPart = outParts.first();
         const QString retType = mTypeMap.localType(retPart.type(), retPart.element());
         if (retType.isEmpty()) {
             qWarning("Could not generate operation '%s'", qPrintable(operation.name()));
@@ -746,7 +773,7 @@ void Converter::convertClientOutputMessage(const Operation &operation,
 {
     // result signal
     const QString operationName = lowerlize(operation.name());
-    const QString signalBase = operationName;
+    const QString &signalBase = operationName;
     const QString callName = QLatin1String("async") + upperlize(operation.name());
     KODE::Function doneSignal(signalBase + QLatin1String("Done"), QLatin1String("void"), KODE::Function::Signal);
     doneSignal.setDocs(QLatin1String("This signal is emitted whenever the asynchronous call ") + callName + QLatin1String("() has succeeded."));
@@ -810,10 +837,6 @@ void Converter::convertClientOutputMessage(const Operation &operation,
                     partNames << value + QLatin1String(".value().value<") + partType + QLatin1String(">()");
                 } else {
                     slotCode += partType + QLatin1String(" ret;"); // local var. TODO ret1/ret2 etc. if more than one.
-                    const bool isComplex = mTypeMap.isComplexType(part.type(), part.element());
-                    if (!isComplex) {
-                        value += QLatin1String(".value()");
-                    }
                     slotCode += QLatin1String("ret.deserialize(") + value + QLatin1String(");") + COMMENT;
                     partNames << QLatin1String("ret");
                 }

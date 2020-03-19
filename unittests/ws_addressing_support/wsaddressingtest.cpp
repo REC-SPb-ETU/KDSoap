@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -53,6 +53,15 @@ private Q_SLOTS:
 
         QString unspecified = KDSoapMessageAddressingProperties::predefinedAddressToString(KDSoapMessageAddressingProperties::Unspecified);
         QCOMPARE(unspecified, QString("http://www.w3.org/2005/08/addressing/unspecified"));
+
+        QString reply200303 = KDSoapMessageAddressingProperties::predefinedAddressToString(KDSoapMessageAddressingProperties::Reply, KDSoapMessageAddressingProperties::Addressing200303);
+        QCOMPARE(reply200303, QString()); // Reply is not a thing in older than 2005/08
+
+        QString anon200303 = KDSoapMessageAddressingProperties::predefinedAddressToString(KDSoapMessageAddressingProperties::Anonymous, KDSoapMessageAddressingProperties::Addressing200303);
+        QCOMPARE(anon200303, QString("http://schemas.xmlsoap.org/ws/2003/03/addressing/role/anonymous"));
+
+        QString unspecified200303 = KDSoapMessageAddressingProperties::predefinedAddressToString(KDSoapMessageAddressingProperties::Unspecified, KDSoapMessageAddressingProperties::Addressing200303);
+        QCOMPARE(unspecified200303, QString("http://schemas.xmlsoap.org/ws/2003/03/addressing/id/unspecified"));
     }
 
     void shouldWriteAProperSoapMessageWithRightsAddressingProperties()
@@ -62,6 +71,79 @@ private Q_SLOTS:
         KDSoapClientInterface client(server.endPoint(), "http://www.ecerami.com/wsdl/HelloService");
 
         KDSoapMessage message;
+        const QString action = QString::fromLatin1("sayHello");
+        message.setUse(KDSoapMessage::EncodedUse);
+        message.addArgument(QString::fromLatin1("msg"), QVariant::fromValue(QString("HelloContentMessage")), KDSoapNamespaceManager::xmlSchema2001(), QString::fromLatin1("string"));
+        message.setNamespaceUri(QString::fromLatin1("http://www.ecerami.com/wsdl/HelloService.wsdl"));
+
+        // WHEN
+        message.setMessageAddressingProperties(addressingProperties());
+        KDSoapMessage reply = client.call(QLatin1String("sayHello"), message, action);
+
+        // THEN
+        QVERIFY(xmlBufferCompare(server.receivedData(), expectedSoapMessage200508()));
+    }
+
+    void shouldWriteAProperSoapMessageWithAlternativeNamespace()
+    {
+        // GIVEN
+        HttpServerThread server(emptyResponse(), HttpServerThread::Public);
+        KDSoapClientInterface client(server.endPoint(), "http://www.ecerami.com/wsdl/HelloService");
+
+        KDSoapMessage message;
+        const QString action = QString::fromLatin1("sayHello");
+        message.setUse(KDSoapMessage::EncodedUse);
+        message.addArgument(QString::fromLatin1("msg"), QVariant::fromValue(QString("HelloContentMessage")), KDSoapNamespaceManager::xmlSchema2001(), QString::fromLatin1("string"));
+        message.setNamespaceUri(QString::fromLatin1("http://www.ecerami.com/wsdl/HelloService.wsdl"));
+
+        // WHEN
+        message.setMessageAddressingProperties(addressingProperties200408());
+        KDSoapMessage reply = client.call(QLatin1String("sayHello"), message, action);
+
+        // THEN
+        QVERIFY(xmlBufferCompare(server.receivedData(), expectedSoapMessage200408()));
+    }
+
+    void shouldReadAProperSoapMessageWithRightsAddressingProperties()
+    {
+        // GIVEN
+        HttpServerThread server(expectedSoapMessage200508(), HttpServerThread::Public);
+        KDSoapClientInterface client(server.endPoint(), "http://www.ecerami.com/wsdl/HelloService");
+
+        KDSoapMessage message;
+        const QString action = QString::fromLatin1("sayHello");
+
+        // WHEN
+        KDSoapMessage reply = client.call(QLatin1String("sayHello"), message, action);
+
+        // THEN
+        QVERIFY(reply.hasMessageAddressingProperties());
+        KDSoapMessageAddressingProperties map = reply.messageAddressingProperties();
+        QCOMPARE(map.action(), QString("sayHello"));
+        QCOMPARE(map.destination(), QString("http://www.ecerami.com/wsdl/HelloService"));
+        QCOMPARE(map.sourceEndpointAddress(), QString("http://www.ecerami.com/wsdl/source"));
+        QCOMPARE(map.faultEndpointAddress(), QString("http://www.ecerami.com/wsdl/fault"));
+        QCOMPARE(map.messageID(), QString("uuid:e197db59-0982-4c9c-9702-4234d204f7f4"));
+        QCOMPARE(map.replyEndpointAddress(), QString("http://www.w3.org/2005/08/addressing/anonymous"));
+        QCOMPARE(map.relationships().at(0).uri, QString("uuid:http://www.ecerami.com/wsdl/someUniqueString"));
+        QCOMPARE(map.relationships().at(0).relationshipType, QString("http://www.w3.org/2005/08/addressing/reply"));
+        QCOMPARE(map.relationships().at(1).uri, QString("uuid:http://www.ecerami.com/wsdl/someUniqueStringBis"));
+        QCOMPARE(map.relationships().at(1).relationshipType, QString("CustomTypeReply"));
+        QCOMPARE(map.referenceParameters().at(0).name(), QString("myReferenceParameter"));
+        QCOMPARE(map.referenceParameters().at(0).value().toString(), QString("ReferencParameterContent"));
+        QCOMPARE(map.referenceParameters().at(1).name(), QString("myReferenceParameterWithChildren"));
+        QCOMPARE(map.referenceParameters().at(1).childValues().size(), 2);
+        QCOMPARE(map.metadata().at(0).name(), QString("myMetadata"));
+        QCOMPARE(map.metadata().at(0).value().toString(), QString("MetadataContent"));
+        QCOMPARE(map.metadata().at(1).name(), QString("myMetadataBis"));
+        QCOMPARE(map.metadata().at(1).childValues().size(), 1);
+        QCOMPARE(map.metadata().at(1).childValues().first().name(), QString("myMetadataBisChild"));
+        QCOMPARE(map.metadata().at(1).childValues().first().value().toString(), QString("MetadataBisChildContent"));
+    }
+
+private:
+    static KDSoapMessageAddressingProperties addressingProperties()
+    {
         KDSoapMessageAddressingProperties map;
 
         // with some message addressing properties
@@ -104,25 +186,33 @@ private Q_SLOTS:
         map.setMetadata(metadataContainer);
         map.addMetadata(metadataBis);
 
-        // and some request content
-        const QString action = QString::fromLatin1("sayHello");
-        message.setUse(KDSoapMessage::EncodedUse);
-        message.addArgument(QString::fromLatin1("msg"), QVariant::fromValue(QString("HelloContentMessage")), KDSoapNamespaceManager::xmlSchema2001(), QString::fromLatin1("string"));
-        message.setNamespaceUri(QString::fromLatin1("http://www.ecerami.com/wsdl/HelloService.wsdl"));
-
-        // WHEN
-        message.setMessageAddressingProperties(map);
-        KDSoapMessage reply = client.call(QLatin1String("sayHello"), message, action);
-
-        // THEN
-        QVERIFY(xmlBufferCompare(server.receivedData(), expectedSoapMessage()));
+        return map;
     }
 
-private:
-    static QByteArray expectedSoapMessage()
+    static KDSoapMessageAddressingProperties addressingProperties200408()
     {
-        return QByteArray(xmlEnvBegin11()) + " xmlns:wsa=\"http://www.w3.org/2005/08/addressing\""
-               + " xmlns:n1=\"http://www.ecerami.com/wsdl/HelloService.wsdl\">"
+        KDSoapMessageAddressingProperties map = addressingProperties();
+        map.setAddressingNamespace(KDSoapMessageAddressingProperties::Addressing200408);
+        return map;
+    }
+
+    static QByteArray expectedSoapMessage200408()
+    {
+        return QByteArray(xmlEnvBegin11()) +
+               " xmlns:wsa=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\"" +
+               expectedSoapMessagePartial();
+    }
+
+    static QByteArray expectedSoapMessage200508()
+    {
+        return QByteArray(xmlEnvBegin11()) +
+               " xmlns:wsa=\"http://www.w3.org/2005/08/addressing\"" +
+               expectedSoapMessagePartial();
+    }
+
+    static QByteArray expectedSoapMessagePartial()
+    {
+        return QByteArray(" xmlns:n1=\"http://www.ecerami.com/wsdl/HelloService.wsdl\">") +
                "<soap:Header>"
                "<wsa:To>http://www.ecerami.com/wsdl/HelloService</wsa:To>"
                "<wsa:From>"

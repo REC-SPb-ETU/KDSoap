@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -27,6 +27,7 @@
 #include <QDateTime>
 #include <QUrl>
 #include <QDebug>
+#include <QStringList>
 
 class KDSoapValue::Private : public QSharedData
 {
@@ -43,6 +44,8 @@ public:
     KDSoapValueList m_childValues;
     bool m_qualified;
     bool m_nillable;
+    QXmlStreamNamespaceDeclarations m_environmentNamespaceDeclarations;
+    QXmlStreamNamespaceDeclarations m_localNamespaceDeclarations;
 };
 
 uint qHash(const KDSoapValue &value)
@@ -95,6 +98,11 @@ QString KDSoapValue::name() const
     return d->m_name;
 }
 
+void KDSoapValue::setName(const QString &name)
+{
+    d->m_name = name;
+}
+
 QVariant KDSoapValue::value() const
 {
     return d->m_value;
@@ -113,6 +121,31 @@ bool KDSoapValue::isQualified() const
 void KDSoapValue::setQualified(bool qualified)
 {
     d->m_qualified = qualified;
+}
+
+void KDSoapValue::setNamespaceDeclarations(const QXmlStreamNamespaceDeclarations &namespaceDeclarations)
+{
+    d->m_localNamespaceDeclarations = namespaceDeclarations;
+}
+
+void KDSoapValue::addNamespaceDeclaration(const QXmlStreamNamespaceDeclaration &namespaceDeclaration)
+{
+    d->m_localNamespaceDeclarations.append(namespaceDeclaration);
+}
+
+QXmlStreamNamespaceDeclarations KDSoapValue::namespaceDeclarations() const
+{
+    return d->m_localNamespaceDeclarations;
+}
+
+void KDSoapValue::setEnvironmentNamespaceDeclarations(const QXmlStreamNamespaceDeclarations &environmentNamespaceDeclarations)
+{
+    d->m_environmentNamespaceDeclarations = environmentNamespaceDeclarations;
+}
+
+QXmlStreamNamespaceDeclarations KDSoapValue::environmentNamespaceDeclarations() const
+{
+    return d->m_environmentNamespaceDeclarations;
 }
 
 KDSoapValueList &KDSoapValue::childValues() const
@@ -176,7 +209,7 @@ static QString variantToTextValue(const QVariant &value, const QString &typeNs, 
     }
     case QVariant::Date:
         return value.toDate().toString(Qt::ISODate);
-    case QVariant::DateTime: // http://www.w3.org/TR/xmlschema-2/#dateTime
+    case QVariant::DateTime: // https://www.w3.org/TR/xmlschema-2/#dateTime
         return KDDateTime(value.toDateTime()).toDateString();
     case QVariant::Invalid:
         qDebug() << "ERROR: Got invalid QVariant in a KDSoapValue";
@@ -269,12 +302,16 @@ void KDSoapValue::writeElementContents(KDSoapNamespacePrefixes &namespacePrefixe
 {
     const QVariant value = this->value();
 
+    foreach (const QXmlStreamNamespaceDeclaration& decl, d->m_localNamespaceDeclarations) {
+        writer.writeNamespace(decl.namespaceUri().toString(), decl.prefix().toString());
+    }
+
     if (isNil() && d->m_nillable) {
         writer.writeAttribute(KDSoapNamespaceManager::xmlSchemaInstance2001(), QLatin1String("nil"), QLatin1String("true"));
     }
 
     if (use == EncodedUse) {
-        // use=encoded means writing out xsi:type attributes. http://www.eherenow.com/soapfight.htm taught me that.
+        // use=encoded means writing out xsi:type attributes
         QString type;
         if (!this->type().isEmpty()) {
             type = namespacePrefixes.resolve(this->typeNs(), this->type());
@@ -286,7 +323,6 @@ void KDSoapValue::writeElementContents(KDSoapNamespacePrefixes &namespacePrefixe
             writer.writeAttribute(KDSoapNamespaceManager::xmlSchemaInstance2001(), QLatin1String("type"), type);
         }
 
-        // cppcheck-suppress redundantCopyLocalConst
         const KDSoapValueList list = this->childValues();
         const bool isArray = !list.arrayType().isEmpty();
         if (isArray) {
@@ -360,6 +396,19 @@ QString KDSoapValue::typeNs() const
 QString KDSoapValue::type() const
 {
     return d->m_typeName;
+}
+
+KDSoapValueList KDSoapValue::split() const
+{
+    KDSoapValueList valueList;
+    const QStringList list = value().toString().split(QLatin1Char(' '), QString::SkipEmptyParts);
+    valueList.reserve(list.count());
+    for (int i = 0; i < list.count(); ++i) {
+        KDSoapValue value(*this);
+        value.setValue(list.at(i));
+        valueList << value;
+    }
+    return valueList;
 }
 
 KDSoapValue KDSoapValueList::child(const QString &name) const

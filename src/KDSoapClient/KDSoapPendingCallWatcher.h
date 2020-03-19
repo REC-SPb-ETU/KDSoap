@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -54,7 +54,7 @@ public:
      * asynchronous pending call \p call and sets this object's parent to
      * \p parent.
      */
-    explicit KDSoapPendingCallWatcher(const KDSoapPendingCall &call, QObject *parent = 0);
+    explicit KDSoapPendingCallWatcher(const KDSoapPendingCall &call, QObject *parent = nullptr);
     /**
      * Destroys this object. If this KDSoapPendingCallWatcher object was the last reference to the unfinished pending call, the call will be canceled.
      */

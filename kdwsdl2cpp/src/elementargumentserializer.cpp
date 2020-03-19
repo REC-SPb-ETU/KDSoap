@@ -84,7 +84,7 @@ KODE::Code ElementArgumentSerializer::generate() const
         block += "}";
     } else {
         const QName actualType = mType.isEmpty() ? mElementType : mType;
-        const QString typeArgs = namespaceString(actualType.nameSpace()) + QLatin1String(", QString::fromLatin1(\"") + actualType.localName() + QLatin1String("\")");
+        //UNUSED const QString typeArgs = namespaceString(actualType.nameSpace()) + QLatin1String(", QString::fromLatin1(\"") + actualType.localName() + QLatin1String("\")");
         const bool isComplex = mTypeMap.isComplexType(mType, mElementType);
         const bool isPolymorphic = mTypeMap.isPolymorphic(mType, mElementType);
 
@@ -102,12 +102,10 @@ KODE::Code ElementArgumentSerializer::generate() const
             block += QLatin1String("KDSoapValue ") + mValueVarName + QLatin1Char('(') + mLocalVarName + op + QLatin1String("serialize(") + mNameArg + QLatin1String("));") + COMMENT;
         } else {
             if (mTypeMap.isBuiltinType(mType, mElementType)) {
-                const QString qtTypeName = mTypeMap.localType(mType, mElementType);
-                const QString value = mTypeMap.serializeBuiltin(mType, mElementType, mLocalVarName, qtTypeName);
-
-                block += QLatin1String("KDSoapValue ") + mValueVarName + QLatin1String("(") + mNameArg + QLatin1String(", ") + value + QLatin1String(", ") + typeArgs + QLatin1String(");") + COMMENT;
+                const QString value = mTypeMap.serializeBuiltin(mType, mElementType, mLocalVarName, mNameArg, actualType.nameSpace(), actualType.localName());
+                block += QLatin1String("KDSoapValue ") + mValueVarName + QLatin1String(" = ") + value + QLatin1String(";") + COMMENT;
             } else {
-                block += QLatin1String("KDSoapValue ") + mValueVarName + QLatin1String("(") + mNameArg + QLatin1String(", ") + mLocalVarName + QLatin1String(".serialize(), ") + typeArgs + QLatin1String(");") + COMMENT;
+                block += QLatin1String("KDSoapValue ") + mValueVarName + QLatin1String(" = ") + mLocalVarName + QLatin1String(".serialize(") + mNameArg + QLatin1String(");") + COMMENT;
             }
         }
         if (!mNameNamespace.isEmpty()) {

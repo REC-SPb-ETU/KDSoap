@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -57,7 +57,7 @@ private Q_SLOTS:
         QString ns;
         KDSoapMessage msg;
         KDSoapHeaders headers;
-        const KDSoapMessageReader::XmlError err = reader.xmlToMessage(xmlNoWhitespace, &msg, &ns, &headers, KDSoapClientInterface::SOAP1_1);
+        const KDSoapMessageReader::XmlError err = reader.xmlToMessage(xmlNoWhitespace, &msg, &ns, &headers, KDSoap::SOAP1_1);
         QCOMPARE(err, KDSoapMessageReader::NoError);
         QVERIFY(!msg.isFault());
         QCOMPARE(msg.name(), QLatin1String("GetEaster"));
@@ -67,7 +67,7 @@ private Q_SLOTS:
         KDSoapMessage msg2;
         KDSoapHeaders headers2;
 
-        const KDSoapMessageReader::XmlError err2 = reader.xmlToMessage(xmlWithWhitespace, &msg2, &ns2, &headers2, KDSoapClientInterface::SOAP1_1);
+        const KDSoapMessageReader::XmlError err2 = reader.xmlToMessage(xmlWithWhitespace, &msg2, &ns2, &headers2, KDSoap::SOAP1_1);
         QCOMPARE(err2, KDSoapMessageReader::NoError);
         QCOMPARE(msg2.name(), QLatin1String("GetEaster"));
 
@@ -90,7 +90,7 @@ private Q_SLOTS:
         QString ns;
         KDSoapMessage msg;
         KDSoapHeaders headers;
-        const KDSoapMessageReader::XmlError err = reader.xmlToMessage(xmlMissingEnd, &msg, &ns, &headers, KDSoapClientInterface::SOAP1_1);
+        const KDSoapMessageReader::XmlError err = reader.xmlToMessage(xmlMissingEnd, &msg, &ns, &headers, KDSoap::SOAP1_1);
         QCOMPARE(err, KDSoapMessageReader::PrematureEndOfDocumentError);
         QVERIFY(msg.isFault());
         QCOMPARE(msg.faultAsString(), QString::fromLatin1(
@@ -108,7 +108,7 @@ private Q_SLOTS:
         QString ns;
         KDSoapMessage msg;
         KDSoapHeaders headers;
-        const KDSoapMessageReader::XmlError err = reader.xmlToMessage(xmlMissingEnd, &msg, &ns, &headers, KDSoapClientInterface::SOAP1_2);
+        const KDSoapMessageReader::XmlError err = reader.xmlToMessage(xmlMissingEnd, &msg, &ns, &headers, KDSoap::SOAP1_2);
         QCOMPARE(err, KDSoapMessageReader::PrematureEndOfDocumentError);
         QVERIFY(msg.isFault());
         QCOMPARE(msg.faultAsString(), QString::fromLatin1(

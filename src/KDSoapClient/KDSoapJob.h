@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -71,12 +71,26 @@ public:
      *
      * \param parent optional parent object
      */
-    explicit KDSoapJob(QObject *parent = 0);
+    explicit KDSoapJob(QObject *parent = nullptr);
 
     /**
      * Destructor.
      */
     ~KDSoapJob();
+
+    /**
+     * Returns the reply headers received from the SOAP server once the request was completed.
+     * Only valid once the request is completed and finished() was emitted.
+     */
+    KDSoapHeaders requestHeaders() const;
+
+    /**
+     * Sets request headers to be sent to the SOAP server. These are sent in addition
+     * to the persistent headers set via the client interface.
+     *
+     * \since 1.8
+     */
+    void setRequestHeaders(const KDSoapHeaders &headers);
 
     /**
      * Returns whether the reply message (see reply()) represents a fault.
@@ -97,19 +111,28 @@ public:
     /**
      * Returns the reply headers received from the SOAP server once the request was completed.
      * Only valid once the request is completed and finished() was emitted.
+     *
+     * \since 1.8
      */
-    KDSoapHeaders returnHeaders() const;
+    KDSoapHeaders replyHeaders() const;
 
     /**
      * Starts the job. The job will emit finished() once done.
      */
     void start();
 
+    /**
+     * Defines whether the job should be automatically deleted or not.
+     * \since 1.8
+     */
+    void setAutoDelete(bool enable);
+
 Q_SIGNALS:
     /**
      * emitted when the job is completed, i.e. the reply for the job's request
      * was received. To read the result, call reply() in the connected slot.
-     * Do not delete the job, the job will auto-delete itself.
+     * Do not delete the job, the job will auto-delete itself. This behavior
+     * can be changed with setAutoDelete().
      *
      * \param job The job instance that emitted the signal
      */

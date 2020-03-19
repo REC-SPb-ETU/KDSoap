@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -225,9 +225,9 @@ public:
     }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5,0,0)
-    virtual void incomingConnection(qintptr socketDescriptor)
+    virtual void incomingConnection(qintptr socketDescriptor) override
 #else
-    virtual void incomingConnection(int socketDescriptor)
+    virtual void incomingConnection(int socketDescriptor) override
 #endif
     {
 #ifndef QT_NO_OPENSSL

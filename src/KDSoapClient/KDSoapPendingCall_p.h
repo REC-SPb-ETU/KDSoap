@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -33,11 +33,13 @@
 
 class KDSoapValue;
 
+void maybeDebugRequest(const QByteArray &data, const QNetworkRequest &request, QNetworkReply *reply);
+
 class KDSoapPendingCall::Private : public QSharedData
 {
 public:
     Private(QNetworkReply *r, QBuffer *b)
-        : reply(r), buffer(b), soapVersion(KDSoapClientInterface::SOAP1_1), parsed(false)
+        : reply(r), buffer(b), soapVersion(KDSoap::SOAP1_1), parsed(false)
     {
     }
     ~Private();
@@ -51,7 +53,7 @@ public:
     QBuffer *buffer;
     KDSoapMessage replyMessage;
     KDSoapHeaders replyHeaders;
-    KDSoapClientInterface::SoapVersion soapVersion;
+    KDSoap::SoapVersion soapVersion;
     bool parsed;
 };
 

@@ -45,6 +45,7 @@ void Converter::convertServerService()
             processRequestMethod.addArgument("const KDSoapMessage &_request");
             processRequestMethod.addArgument("KDSoapMessage &_response");
             processRequestMethod.addArgument("const QByteArray& _soapAction");
+            processRequestMethod.setVirtualMode(KODE::Function::Override);
 
             KODE::Code body;
             const QString responseNs = mWSDL.definitions().targetNamespace();
@@ -117,7 +118,7 @@ void Converter::generateServerMethod(KODE::Code &code, const Binding &binding, c
     QStringList inputVars;
     const Part::List parts = message.parts();
     for (int partNum = 0; partNum < parts.count(); ++partNum) {
-        const Part part = parts.at(partNum);
+        const Part &part = parts.at(partNum);
         const QString lowerName = lowerlize(part.name());
         const QString argType = mTypeMap.localType(part.type(), part.element());
         //qDebug() << "localInputType" << part.type().qname() << part.element().qname() << "->" << argType;
@@ -151,7 +152,7 @@ void Converter::generateServerMethod(KODE::Code &code, const Binding &binding, c
                  "an issue on github with your wsdl file", qPrintable(operation.name()));
         virtualMethod.setReturnType("void /*UNSUPPORTED*/");
     } else if (outParts.isEmpty()) {
-        code += lowerlize(operationName) + '(' + inputVars.join(", ") + ");";
+        code += "this->" + lowerlize(operationName) + '(' + inputVars.join(", ") + ");" + COMMENT;
         virtualMethod.setReturnType("void");
     } else {
         QString retType;
