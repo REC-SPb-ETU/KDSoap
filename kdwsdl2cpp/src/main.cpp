@@ -217,7 +217,7 @@ int main(int argc, char **argv)
             useLocalFilesOnly = true;
         } else if (opt == QLatin1String("-help-on-missing")) {
             helpOnMissing = true;
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0) && !QT_NO_OPENSSL
         } else if (opt == QLatin1String("-pkcs12file")) {
             ++arg;
             if (!argv[arg]) {
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
     Settings::self()->setHelpOnMissing(helpOnMissing);
 
     KWSDL::Compiler compiler;
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0) && !QT_NO_OPENSSL
     if (!pkcs12File.isEmpty()) {
         if (!Settings::self()->loadCertificate(pkcs12File, pkcs12Password))
             return -1;
