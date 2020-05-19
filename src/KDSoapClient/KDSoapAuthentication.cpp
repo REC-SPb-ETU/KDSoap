@@ -132,7 +132,7 @@ void KDSoapAuthentication::handleAuthenticationRequired(QNetworkReply *reply, QA
         reply->setProperty("authAdded", true);
     } else {
         // protected... reply->setError(QNetworkReply::AuthenticationRequiredError, QString());
-+        reply->abort();
+        reply->abort();
     }
 }
 
