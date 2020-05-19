@@ -77,6 +77,7 @@ if(NOT ${PROJECT_NAME}_ENFORCE_QT4_BUILD)
 endif()
 
 if(Qt5Core_FOUND)
+  set(QT_VERSION "qt5")
   find_package(Qt5Network REQUIRED)
   find_package(Qt5Widgets CONFIG)
   set(QT_LIBRARIES Qt5::Core)
@@ -96,6 +97,7 @@ if(Qt5Core_FOUND)
 
 else()
   find_package(Qt4 4.7 QUIET REQUIRED QtCore QtMain)
+  set(QT_VERSION "qt4")
 
   # Workaround qt4 moc bug, see https://bugzilla.redhat.com/show_bug.cgi?id=1396755
   add_definitions(-D_SYS_SYSMACROS_H_OUTER)
@@ -157,14 +159,14 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     include(CMakePackageConfigHelpers)
   endif()
 
-  write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/KDSoap/KDSoapConfigVersion.cmake"
+  write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/KDSoap/KDSoap-${QT_VERSION}ConfigVersion.cmake"
     VERSION ${${PROJECT_NAME}_VERSION}
     COMPATIBILITY AnyNewerVersion
   )
 
   configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/KDSoapConfig-buildtree.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/KDSoap/KDSoapConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/KDSoap/KDSoap-${QT_VERSION}Config.cmake"
     @ONLY
   )
   file(COPY
@@ -174,19 +176,19 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   )
   configure_package_config_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/KDSoapConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/install/KDSoapConfig.cmake"
-    INSTALL_DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/KDSoap"
+    "${CMAKE_CURRENT_BINARY_DIR}/install/KDSoap-${QT_VERSION}Config.cmake"
+    INSTALL_DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/KDSoap-${QT_VERSION}"
     PATH_VARS INSTALL_INCLUDE_DIR
   )
 
   install(FILES
-      "${CMAKE_CURRENT_BINARY_DIR}/install/KDSoapConfig.cmake"
-      "${CMAKE_CURRENT_BINARY_DIR}/KDSoap/KDSoapConfigVersion.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/install/KDSoap-${QT_VERSION}Config.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/KDSoap/KDSoap-${QT_VERSION}ConfigVersion.cmake"
       KDSoapMacros.cmake
-    DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/KDSoap"
+    DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/KDSoap-${QT_VERSION}"
   )
   install(EXPORT KDSoapTargets NAMESPACE KDSoap::
-    DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/KDSoap"
+    DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/KDSoap-${QT_VERSION}"
   )
 endif()
 
