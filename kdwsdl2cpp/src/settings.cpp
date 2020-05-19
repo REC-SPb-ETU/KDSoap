@@ -252,7 +252,7 @@ bool Settings::helpOnMissing() const
     return mHelpOnMissing;
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0) && !QT_NO_OPENSSL
 bool Settings::loadCertificate(const QString &certPath, const QString & password)
 {
     QFile certFile(certPath);
