@@ -87,7 +87,7 @@ public:
     bool helpOnMissing() const;
     void setHelpOnMissing(bool b);
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0) && !QT_NO_OPENSSL
+#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0) && !defined QT_NO_OPENSSL
     bool loadCertificate(const QString & certPath, const QString &password = QString());
     bool certificateLoaded() const;
     QSslKey sslKey() const;
@@ -115,7 +115,7 @@ private:
     bool mKeepUnusedTypes;
     bool mUseLocalFilesOnly;
     bool mHelpOnMissing;
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0) && !QT_NO_OPENSSL
+#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0) && !defined QT_NO_OPENSSL
     QSslKey mSslKey;
     QSslCertificate mCertificate;
     QList<QSslCertificate> mCaCertificates;
