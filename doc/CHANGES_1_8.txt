@@ -1,26 +1,61 @@
 General:
 ========
-*
+* Fix internally-created faults lacking an XML element name (so e.g. toXml() would abort)
+* KDSoapMessage::messageAddressingProperties() is now correctly filled in when receiving a message with WS-Addressing in the header
 
 Client-side:
 ============
+* Add support for timing out requests (default 30 minutes, configurable with KDSoapClientInterface::setTimeout())
 * Add support for soap 1.2 faults in faultAsString()
 * Improve detection of soap 1.2 faults in HTTP response
 * Stricter namespace check for Fault elements being received
 * Report client-generated faults as SOAP 1.2 if selected
 * Fix error code when authentication failed
+* Autodeletion of jobs is now configurable (github pull #125)
+* Add error details in faultAsString() - and the generated lastError() - coming from the SOAP 1.2 detail element.
+* Fix memory leak in KDSoapClientInterface::callNoReply
+* Add support for WS-UsernameToken, see KDSoapAuthentication
+* Extend KDSOAP_DEBUG functionality (e.g. "KDSOAP_DEBUG=http,reformat" will now print http-headers and pretty-print the xml)
+* Add support for specifying requestHeaders as part of KDSoapJob via KDSoapJob::setRequestHeaders()
+* Rename the missing KDSoapJob::returnHeaders() to KDSoapJob::replyHeaders(), and provide an implementation
+* Make KDSoapClientInterface::soapVersion() const
 * Add lastFaultCode() for error handling after sync calls. Same as lastErrorCode() but it returns a QString rather than an int.
+* Add conversion operator from KDDateTime to QVariant to void implicit conversion to base QDateTime (github issue #123).
 
 Server-side:
 ============
 * New method KDSoapServerObjectInterface::additionalHttpResponseHeaderItems to let server objects return additional http headers.
   This can be used to implement support for CORS, using KDSoapServerCustomVerbRequestInterface to implement OPTIONS response,
   with "Access-Control-Allow-Origin" in the headers of the response (github issue #117).
+* Don't generate two job classes with the same name, when two bindings have the same operation name. Prefix one of them with the binding name (github issue #139 part 1)
+* Prepend this-> in method class to avoid compilation error when the variable and the method have the same name (github issue #139 part 2)
 
 WSDL parser / code generator changes, applying to both client and server side:
 ================================================================
+* Source incompatible change: all deserialize() functions now require a KDSoapValue instead of a 
+    QVariant. If you use a deserialize(QVariant) function, you need to port your code to use 
+    KDSoapValue::setValue(QVariant) before deserialize()
+* Source incompatible change: all serialize() functions now return a KDSoapValue instead of a 
+    QVariant. If you use a QVariant serialize() function, you need to port your code to use 
+    QVariant KDSoapValue::value() after serialize()
+* Source incompatible change: xs:QName is now represented by KDQName instead of QString, which 
+    allows the namespace to be extracted. The old behaviour is available via KDQName::qname().
 * Fix double-handling of empty elements
 * Fix fault elements being generated in the wrong namespace, must be SOAP-ENV:Fault (github issue #81).
+* Added import-path argument for setting the local path to get (otherwise downloaded) files from.
+* Added -help-on-missing option to kdwsdl2cpp to display extra help on missing types.
+* Added C++17 std::optional as possible return value for optional elements.
+* Added -both to create both header(.h) and implementation(.cpp) files in one run
+* Added -namespaceMapping @mapping.txt to import url=code mappings, affects C++ class name generation
+* Added functionality to prevent downloading the same WSDL/XSD file twice in one run
+* Added "hasValueFor{MemberName}()" accessor function, for optional elements
+* Generated services now include soapVersion() and endpoint() accessors to match the setSoapVersion(...) and setEndpoint(...) mutators
+* Added support for generating messages for WSDL files without services or bindings
+* Fix erroneous QT_BEGIN_NAMESPACE around forward-declarations like Q17__DialogType.
+* KDSoapValue now stores the namespace declarations during parsing of a message and writes 
+    namespace declarations during sending of a message
+* Avoid serialize crash with required polymorphic types, if the required variable wasn't actually provided
 * Fix generated code for restriction to base class (it wouldn't compile)
-
+* Prepend "undef daylight" and "undef timezone" to all generated files, to fix compilation errors in wsdl files that use those names, due to nasty Windows macros
+* Added generation for default attribute values. 
 

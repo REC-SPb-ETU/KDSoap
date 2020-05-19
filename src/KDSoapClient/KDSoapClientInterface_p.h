@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -53,7 +53,7 @@ public:
     KDSoapAuthentication m_authentication;
     QMap<QString, KDSoapMessage> m_persistentHeaders;
     QMap<QByteArray, QByteArray> m_httpHeaders;
-    KDSoapClientInterface::SoapVersion m_version;
+    KDSoap::SoapVersion m_version;
     KDSoapClientInterface::Style m_style;
     bool m_ignoreSslErrors;
     KDSoapHeaders m_lastResponseHeaders;
@@ -62,6 +62,7 @@ public:
     QSslConfiguration m_sslConfiguration;
     KDSoapSslHandler *m_sslHandler;
 #endif
+    int m_timeout;
 
     QNetworkAccessManager *accessManager();
     QNetworkRequest prepareRequest(const QString &method, const QString &action);

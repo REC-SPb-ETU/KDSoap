@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -76,6 +76,23 @@ private Q_SLOTS:
       QCOMPARE(state.enumerationValue(), TNS__SynchronizationType(TNS__SynchronizationType::MIDDLE));
     }
 
+    void testDefaultTimeValue()
+    {
+        TNS__State state;
+        QCOMPARE(state.timeValue(), QTime(9, 30, 10));
+    }
+    void testDefaultDateValue()
+    {
+        TNS__State state;
+        QCOMPARE(state.dateValue(), QDate(2002, 1, 24));
+    }
+
+    void testDefaultDateTimeValue()
+    {
+        TNS__State state;
+        QCOMPARE(state.dateTimeValue(), KDDateTime(QDateTime(QDate(2002, 5, 30), QTime(9, 30, 10))));
+    }
+
     void testMustNotSerializeWhenValueNotSet()
     {
       TNS__State state;
@@ -92,13 +109,6 @@ private Q_SLOTS:
       QVERIFY(!actualXml.contains("byteArrayValue"));
       QVERIFY(!actualXml.contains("enumerationValue"));
     }
-
-//    Not implemented!
-//    void testDefaultDateTimeValue()
-//    {
-//      TNS__State state;
-//      QCOMPARE(state.xxx(), KDDateTime());
-//    }
 };
 
 QTEST_MAIN(DefaultAttributeValueTest)

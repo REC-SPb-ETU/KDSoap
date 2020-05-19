@@ -32,7 +32,6 @@ using namespace KWSDL;
 
 static QString soapBindingTransportHTTP = QLatin1String("http://schemas.xmlsoap.org/soap/http");
 static QString soapStandardNamespace = QLatin1String("http://schemas.xmlsoap.org/wsdl/soap/");
-static QString soapEncStandardNamespace = QLatin1String("http://schemas.xmlsoap.org/soap/encoding/");
 
 static QString soapPrefix(ParserContext *context)
 {
@@ -297,7 +296,7 @@ QString SoapBinding::Body::nameSpace() const
 void SoapBinding::Body::loadXML(ParserContext *context, const QDomElement &element)
 {
 #if 0
-    // ## Seems to be set to a namespace, always http://schemas.xmlsoap.org/soap/encoding/ ... unused here.
+    // ## Seems to be set to a namespace, always https://schemas.xmlsoap.org/soap/encoding/ ... unused here.
     if (element.hasAttribute("encodingStyle")) {
         mEncodingStyle = element.attribute("encodingStyle");
     } else {

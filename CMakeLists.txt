@@ -4,16 +4,34 @@
 # (See INSTALL-cmake.txt for more information)
 #
 # -DKDSoap_ENFORCE_QT4_BUILD=[true|false]
-#  Force building against Qt4.
+#  Force building against Qt4, even if Qt5 is found.
 #  Default=false
 #
+# -DKDSoap_STATIC=[true|false]
+#  Build static libraries
+#  Default=false
 #
 # -DKDSoap_TESTS=[true|false]
 #  Build the test harness.
 #  Default=false
 #
-cmake_minimum_required(VERSION 3.9.1)
-cmake_policy(SET CMP0020 NEW)
+# -DKDSoap_EXAMPLES=[true|false]
+#  Build the examples.
+#  Default=true
+#
+cmake_minimum_required(VERSION 2.8.7)
+if(POLICY CMP0020)
+  cmake_policy(SET CMP0020 NEW)
+endif()
+if(POLICY CMP0025)
+  cmake_policy(SET CMP0025 NEW)
+endif()
+
+if("${CMAKE_INSTALL_PREFIX}" STREQUAL "")
+  set(USE_DEFAULT_INSTALL_LOCATION True)
+else()
+  set(USE_DEFAULT_INSTALL_LOCATION False)
+endif()
 
 project(KDSoap CXX)
 
@@ -23,31 +41,42 @@ option(
   OFF
 )
 
+if(CMAKE_VERSION VERSION_LESS "3.1")
+    if(CMAKE_COMPILER_IS_GNUCXX)
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    endif ()
+else()
+    set(CMAKE_CXX_STANDARD 11)
+endif()
+
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/ ${CMAKE_MODULE_PATH}")
 
 option(${PROJECT_NAME}_STATIC "Build statically" OFF)
 option(${PROJECT_NAME}_TESTS "Build the tests" OFF)
+option(${PROJECT_NAME}_EXAMPLES "Build the examples" ON)
 
 set(${PROJECT_NAME}_VERSION_MAJOR 1)
-set(${PROJECT_NAME}_VERSION_MINOR 7)
-set(${PROJECT_NAME}_VERSION_PATCH 60)
+set(${PROJECT_NAME}_VERSION_MINOR 9)
+set(${PROJECT_NAME}_VERSION_PATCH 0)
 set(${PROJECT_NAME}_VERSION ${${PROJECT_NAME}_VERSION_MAJOR}.${${PROJECT_NAME}_VERSION_MINOR}.${${PROJECT_NAME}_VERSION_PATCH})
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.3)
-  set(CMAKE_CXX_STANDARD 11)
+find_path(BOOST_OPTIONAL_DIR NAMES boost/optional.hpp)
+if (BOOST_OPTIONAL_DIR)
+    message(STATUS "Found boost/optional.hpp in ${BOOST_OPTIONAL_DIR}")
+    include_directories(${BOOST_OPTIONAL_DIR})
+    add_definitions(-DBOOST_OPTIONAL_FOUND) # I'd really prefer using configure_file but this is more compatible with qmake
 endif()
-
 
 # setup default install locations
 include(InstallLocation)
 
-set(QT_VERSION "qt5")
-
-# Build against Qt5 by default. To build against Qt4 use "-DKDSoap_ENFORCE_QT4_BUILD=true"
+# try Qt5 first, and prefer that (if found), but only if not disabled via option
 if(NOT ${PROJECT_NAME}_ENFORCE_QT4_BUILD)
-  message("Build against Qt5 by default. To build against Qt4 use \"-DKDSoap_ENFORCE_QT4_BUILD=true\"")
-  find_package(Qt5Core REQUIRED)
+  find_package(Qt5Core QUIET)
+endif()
+
+if(Qt5Core_FOUND)
   find_package(Qt5Network REQUIRED)
   find_package(Qt5Widgets CONFIG)
   set(QT_LIBRARIES Qt5::Core)
@@ -64,12 +93,13 @@ if(NOT ${PROJECT_NAME}_ENFORCE_QT4_BUILD)
       set(CMAKE_POSITION_INDEPENDENT_CODE ON)
     endif()
   endif()
-else()
-  find_package(Qt4 4.7 REQUIRED QtCore QtMain)
-  set(QT_VERSION "qt4")
-endif()
 
-set(PROJECT_NAME_FOR_INSTALL "${PROJECT_NAME}-${QT_VERSION}")
+else()
+  find_package(Qt4 4.7 QUIET REQUIRED QtCore QtMain)
+
+  # Workaround qt4 moc bug, see https://bugzilla.redhat.com/show_bug.cgi?id=1396755
+  add_definitions(-D_SYS_SYSMACROS_H_OUTER)
+endif()
 
 set(CMAKE_INCLUDE_CURRENT_DIR TRUE)
 set(CMAKE_AUTOMOC TRUE)
@@ -78,6 +108,14 @@ add_definitions(-DQT_NO_CAST_TO_ASCII -DQT_NO_CAST_FROM_ASCII -DQT_NO_CAST_FROM_
 add_definitions(-DUSE_EXCEPTIONS -DQT_FATAL_ASSERT)
 if(MSVC)
   add_definitions(-D_SCL_SECURE_NO_WARNINGS)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag(-Wsuggest-override HAVE_GXX_SUGGEST_OVERRIDE)
+  if(HAVE_GXX_SUGGEST_OVERRIDE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsuggest-override")
+  endif()
 endif()
 
 if(${PROJECT_NAME}_STATIC)
@@ -97,16 +135,21 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "" FORCE)
   endif()
 
+  if(USE_DEFAULT_INSTALL_LOCATION)
+    if(UNIX)
+      set(CMAKE_INSTALL_PREFIX "/usr/local/KDAB/${PROJECT_NAME}-${${PROJECT_NAME}_VERSION}")
+    elseif(WIN32)
+      set(CMAKE_INSTALL_PREFIX "C:\\KDAB\\${PROJECT_NAME}-${${PROJECT_NAME}_VERSION}")
+    endif()
+  endif()
+
   message(STATUS "Building ${PROJECT_NAME} ${${PROJECT_NAME}_VERSION} in ${CMAKE_BUILD_TYPE} mode. Installing to ${CMAKE_INSTALL_PREFIX}")
 
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib")
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib")
 
-  set(CMAKE_INSTALL_RPATH ${INSTALL_LIBRARY_DIR})
-  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-  install(FILES LICENSE.GPL.txt LICENSE.US.txt LICENSE.txt README.txt kdsoap.pri kdwsdl2cpp.pri DESTINATION ${INSTALL_DOC_DIR} COMPONENT doc)
+  install(FILES LICENSE.GPL.txt LICENSE.txt README.txt kdsoap.pri kdwsdl2cpp.pri DESTINATION ${INSTALL_DOC_DIR})
 
   if(CMAKE_VERSION VERSION_LESS 2.8.8)
     include("${CMAKE_SOURCE_DIR}/cmake/CMakePackageConfigHelpers.cmake")
@@ -129,42 +172,23 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     DESTINATION
     "${CMAKE_CURRENT_BINARY_DIR}/KDSoap/"
   )
-  
-  set(PROJECT_INSTALL_INCLUDE_DIR "${INSTALL_INCLUDE_DIR}/${PROJECT_NAME_FOR_INSTALL}")
-  
   configure_package_config_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/KDSoapConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/install/KDSoapConfig.cmake"
-    INSTALL_DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/${PROJECT_NAME_FOR_INSTALL}"
-    PATH_VARS PROJECT_INSTALL_INCLUDE_DIR
+    INSTALL_DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/KDSoap"
+    PATH_VARS INSTALL_INCLUDE_DIR
   )
 
-  install(FILES
-      KDSoapMacros.cmake
-    DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/${PROJECT_NAME_FOR_INSTALL}" 
-    COMPONENT devel
-  )
-  
   install(FILES
       "${CMAKE_CURRENT_BINARY_DIR}/install/KDSoapConfig.cmake"
-    DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/${PROJECT_NAME_FOR_INSTALL}" 
-    RENAME "KDSoap-${QT_VERSION}Config.cmake"
-    COMPONENT devel
-  )
-  
-  install(FILES
       "${CMAKE_CURRENT_BINARY_DIR}/KDSoap/KDSoapConfigVersion.cmake"
-    DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/${PROJECT_NAME_FOR_INSTALL}" 
-    RENAME "KDSoap-${QT_VERSION}ConfigVersion.cmake"
-    COMPONENT devel
+      KDSoapMacros.cmake
+    DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/KDSoap"
   )
-  
   install(EXPORT KDSoapTargets NAMESPACE KDSoap::
-    DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/${PROJECT_NAME_FOR_INSTALL}" COMPONENT devel
+    DESTINATION "${INSTALL_LIBRARY_DIR}/cmake/KDSoap"
   )
 endif()
-
-set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
 
 add_subdirectory(src)
 add_subdirectory(kdwsdl2cpp)
@@ -180,72 +204,7 @@ if(${PROJECT_NAME}_IS_ROOT_PROJECT)
     add_subdirectory(testtools)
     add_subdirectory(unittests)
   endif()
-  add_subdirectory(examples)
+  if(${PROJECT_NAME}_EXAMPLES)
+    add_subdirectory(examples)
+  endif()
 endif()
-
-### FOR PACKAGING #####################################################################################
-set(PROJECT_VERSION ${${PROJECT_NAME}_VERSION})
-set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
-set(CPACK_PACKAGE_NAME ${PROJECT_NAME_FOR_INSTALL})
-set(CPACK_PACKAGE_VENDOR "Klaralvdalens Datakonsult AB (KDAB) && R&EC SPb ETU")
-
-### RPM ################################################################################################
-set(CPACK_RPM_PACKAGE_DEBUG ON)
-set(CPACK_RPM_doc_PACKAGE_NAME "kdsoap-doc")
-set(CPACK_RPM_doc_PACKAGE_ARCHITECTURE "noarch")
-set(CPACK_RPM_COMPONENT_INSTALL ON)
-set(CPACK_RPM_FILE_NAME "RPM-DEFAULT")
-set(CPACK_RPM_PACKAGE_SUMMARY "A Qt-based client-side and server-side SOAP component")
-set(CPACK_RPM_PACKAGE_GROUP "System Environment/Libraries")
-set(CPACK_RPM_PACKAGE_URL "http://github.com/REC-SPb-ETU/KDSoap")
-set(CPACK_RPM_PACKAGE_LICENSE "LGPL-2.1+")
-
-set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION ${CPACK_PACKAGING_INSTALL_PREFIX}/${INSTALL_LIBRARY_DIR}/cmake /etc/ld.so.conf.d)
-set(CPACK_RPM_SOURCE_PKG_PACKAGING_INSTALL_PREFIX ${CPACK_PACKAGING_INSTALL_PREFIX})
-
-if(${PROJECT_NAME}_ENFORCE_QT4_BUILD)
-  set(CPACK_RPM_SOURCE_PKG_BUILD_PARAMS "-DCMAKE_BUILD_TYPE=Release -DKDSoap_ENFORCE_QT4_BUILD=true")
-else()
-  set(CPACK_RPM_SOURCE_PKG_BUILD_PARAMS "-DCMAKE_BUILD_TYPE=Release")
-endif()    
-
-set(CPACK_RPM_devel_PACKAGE_REQUIRES "kdsoap-${QT_VERSION}-core = ${PROJECT_VERSION} kdsoap-${QT_VERSION}-server = ${PROJECT_VERSION}")
-
-set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/ldconfig/post_install_script.sh")
-set(CPACK_RPM_POST_UNINSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/ldconfig/post_uninstall_script.sh")
-
-
-### DEB ################################################################################################
-
-set(CPACK_DEBIAN_PACKAGE_DEBUG ON)
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "R&EC SPb ETU")
-set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "http://nicetu.spb.ru")
-
-set(CPACK_DEB_COMPONENT_INSTALL ON)
-set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
-set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
-set(CPACK_DEBIAN_DOC_PACKAGE_ARCHITECTURE "noarch")
-set(CPACK_DEBIAN_DOC_PACKAGE_NAME "kdsoap-doc")
-
-set(CPACK_DEBIAN_DEVEL_PACKAGE_DEPENDS "kdsoap-${QT_VERSION}-core (= ${PROJECT_VERSION}), kdsoap-${QT_VERSION}-server (= ${PROJECT_VERSION})")
-
-# Explicit dependencies because of CPackDEB can't process component interdependency with dpkg-shlibdeps correctly
-# https://gitlab.kitware.com/cmake/cmake/issues/17447
-set(CPACK_DEBIAN_SERVER_PACKAGE_DEPENDS "kdsoap-${QT_VERSION}-core (= ${PROJECT_VERSION})")
-
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_SOURCE_DIR}/ldconfig/postinst;${CMAKE_SOURCE_DIR}/ldconfig/postrm")
-
-# LD_LIBRARY_PATH because of https://gitlab.kitware.com/cmake/cmake/issues/17447
-add_custom_target(deb
-  COMMAND rm *.deb -f
-  COMMAND ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH="${CMAKE_BINARY_DIR}/lib" cpack -G DEB
-)
-
-add_custom_target(rpm
-  COMMAND rm *.rpm -f
-  COMMAND cpack -G RPM
-)
-
-
-include(CPack)

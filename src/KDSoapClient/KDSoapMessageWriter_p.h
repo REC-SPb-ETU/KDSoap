@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -24,6 +24,7 @@
 #define KDSOAPMESSAGEWRITER_P_H
 
 #include "KDSoapMessage.h"
+#include "KDSoapAuthentication.h"
 #include "KDSoapClientInterface.h"
 #include <QtCore/QXmlStreamWriter>
 #include <QtCore/QByteArray>
@@ -44,16 +45,17 @@ class KDSOAP_EXPORT KDSoapMessageWriter
 public:
     KDSoapMessageWriter();
 
-    void setVersion(KDSoapClientInterface::SoapVersion version);
+    void setVersion(KDSoap::SoapVersion version);
     void setMessageNamespace(const QString &ns);
 
     QByteArray messageToXml(const KDSoapMessage &message, const QString &method /*empty in document style*/,
                             const KDSoapHeaders &headers,
-                            const QMap<QString, KDSoapMessage> &persistentHeaders) const;
+                            const QMap<QString, KDSoapMessage> &persistentHeaders,
+                            const KDSoapAuthentication &authentication = KDSoapAuthentication()) const;
 
 private:
     QString m_messageNamespace;
-    KDSoapClientInterface::SoapVersion m_version;
+    KDSoap::SoapVersion m_version;
 
 };
 

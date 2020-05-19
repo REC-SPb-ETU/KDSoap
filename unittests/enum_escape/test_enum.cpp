@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2014-2018 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2014-2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -51,8 +51,8 @@ void TestEnum::test()
     ar.setType(TNS__AudienceRating::Http___f_q_d_n_ext_enum2);
     ar.setType(TNS__AudienceRating::_6Bis);
 
-    QVariant var = ar.serialize();
-    ar.deserialize(var);
+    KDSoapValue soapValue = ar.serialize(QString());
+    ar.deserialize(soapValue);
 
     QCOMPARE(ar.type(), TNS__AudienceRating::_6Bis);
 }

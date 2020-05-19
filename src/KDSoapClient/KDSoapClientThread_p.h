@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -93,14 +93,14 @@ class KDSoapClientThread : public QThread
 {
     Q_OBJECT
 public:
-    explicit KDSoapClientThread(QObject *parent = 0);
+    explicit KDSoapClientThread(QObject *parent = nullptr);
 
     void enqueue(KDSoapThreadTaskData *taskData);
 
     void stop();
 
 protected:
-    virtual void run();
+    virtual void run() override;
 
 private:
     QMutex m_mutex;

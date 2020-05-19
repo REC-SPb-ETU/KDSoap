@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -98,9 +98,9 @@ public:
         s_serverObjects.remove(QThread::currentThread());
     }
 
-    virtual void processRequest(const KDSoapMessage &request, KDSoapMessage &response, const QByteArray &soapAction);
+    virtual void processRequest(const KDSoapMessage &request, KDSoapMessage &response, const QByteArray &soapAction) override;
 
-    virtual QIODevice *processFileRequest(const QString &path, QByteArray &contentType)
+    virtual QIODevice *processFileRequest(const QString &path, QByteArray &contentType) override
     {
         if (path == QLatin1String("/path/to/file_download.txt")) {
             QFile *file = new QFile(QLatin1String("file_download.txt")); // local file, created by the unittest
@@ -110,7 +110,7 @@ public:
         return 0;
     }
 
-    virtual bool validateAuthentication(const KDSoapAuthentication &auth, const QString &path)
+    virtual bool validateAuthentication(const KDSoapAuthentication &auth, const QString &path) override
     {
         if (!m_requireAuth) {
             return true;
@@ -123,7 +123,7 @@ public:
     }
 
     // KDSoapServerRawXMLInterface interface
-    bool newRequest(const QByteArray &requestType, const QMap<QByteArray, QByteArray> &httpHeaders)
+    bool newRequest(const QByteArray &requestType, const QMap<QByteArray, QByteArray> &httpHeaders) override
     {
         if (m_useRawXML && requestType == "POST") {
             if (!httpHeaders.contains("content-type")
@@ -137,7 +137,7 @@ public:
         }
         return false;
     }
-    void processXML(const QByteArray &xmlChunk)
+    void processXML(const QByteArray &xmlChunk) override
     {
         if (!m_useRawXML) { // should never happen
             Q_ASSERT(m_useRawXML);
@@ -145,7 +145,7 @@ public:
         }
         m_assembledXML += xmlChunk;
     }
-    void endRequest()
+    void endRequest() override
     {
         if (m_assembledXML != rawCountryMessage(s_longEmployeeName)) {
             qWarning() << "Expected" << rawCountryMessage(s_longEmployeeName) << "\nGot" << m_assembledXML;
@@ -161,7 +161,7 @@ public:
 
     // KDSoapServerCustomVerbRequestInterface
     virtual bool processCustomVerbRequest(const QByteArray &requestType, const QByteArray &requestData,
-                                          const QMap<QByteArray, QByteArray> &httpHeaders, QByteArray &customAnswer)
+                                          const QMap<QByteArray, QByteArray> &httpHeaders, QByteArray &customAnswer) override
     {
         Q_UNUSED(requestData);
         Q_UNUSED(httpHeaders);
@@ -177,7 +177,7 @@ public:
         return false;
     }
 
-    virtual HttpResponseHeaderItems additionalHttpResponseHeaderItems() const
+    virtual HttpResponseHeaderItems additionalHttpResponseHeaderItems() const override
     {
         static KDSoapServerObjectInterface::HttpResponseHeaderItems result = KDSoapServerObjectInterface::HttpResponseHeaderItems()
                 <<  KDSoapServerObjectInterface::HttpResponseHeaderItem("Access-Control-Allow-Origin", "*")
@@ -246,7 +246,7 @@ class CountryServer : public KDSoapServer
 public:
     CountryServer() : KDSoapServer(), m_requireAuth(false), m_useRawXML(false) {}
 
-    virtual QObject *createServerObject()
+    virtual QObject *createServerObject() override
     {
         return new CountryServerObject(m_requireAuth, m_useRawXML);
     }
@@ -321,7 +321,7 @@ public:
     }
 
 protected:
-    void run()
+    void run() override
     {
         CountryServer server;
         if (m_threadPool) {
@@ -780,9 +780,9 @@ private Q_SLOTS:
         const int numClients = 80;
         const int maxThreads = 5;
 
-        KDSoapThreadPool threadPool;
-        threadPool.setMaxThreadCount(maxThreads);
-        CountryServerThread serverThread(&threadPool);
+        KDSoapThreadPool* threadPool = new KDSoapThreadPool;
+        threadPool->setMaxThreadCount(maxThreads);
+        CountryServerThread serverThread(threadPool);
         CountryServer *server = serverThread.startThread();
         QVector<KDSoapClientInterface *> clients;
         clients.resize(numClients);
@@ -812,6 +812,9 @@ private Q_SLOTS:
         // some of them got an error, trying to connect while server was suspended.
 
         qDeleteAll(clients);
+        server->setThreadPool(nullptr);
+        delete threadPool; // stop all threads before deleting the server (which they access)
+        // ## it would have been better API to make the server own the threadpool, to avoid this switcheroo on deletion
     }
 
     void testServerFault() // fault returned by server
@@ -838,7 +841,7 @@ private Q_SLOTS:
 
         QList<QByteArray> expected;
         expected << "CALL getEmployeeCountry";
-        expected << "FAULT getEmployeeCountry -- Fault code Client.Data: Empty employee name (CountryServerObject)";
+        expected << "FAULT getEmployeeCountry -- Fault code Client.Data: Empty employee name (CountryServerObject). Error detail: Employee name must not be empty";
         compareLines(expected, fileName);
 
         server->setLogLevel(KDSoapServer::LogNothing);
@@ -850,7 +853,7 @@ private Q_SLOTS:
         server->setLogLevel(KDSoapServer::LogFaults);
         makeSimpleCall(server->endPoint());
         makeFaultyCall(server->endPoint());
-        expected << "FAULT getEmployeeCountry -- Fault code Client.Data: Empty employee name (CountryServerObject)";
+        expected << "FAULT getEmployeeCountry -- Fault code Client.Data: Empty employee name (CountryServerObject). Error detail: Employee name must not be empty";
         server->flushLogFile();
         compareLines(expected, fileName);
 
@@ -864,7 +867,7 @@ private Q_SLOTS:
         for (int i = 0; i < numClients; ++i) {
             KDSoapClientInterface *client = new KDSoapClientInterface(server->endPoint(), countryMessageNamespace());
             clients[i] = client;
-            makeAsyncCalls(*client, 1, true);
+            makeAsyncCalls(*client, 1, true /*slow*/);
         }
         m_eventLoop.exec();
         QTest::qWait(1000);
@@ -1332,6 +1335,24 @@ private Q_SLOTS:
         QCOMPARE(reply->rawHeader("Access-Control-Allow-Origin").constData(), "*");
         QVERIFY(reply->rawHeaderList().contains("Access-Control-Allow-Headers"));
         QCOMPARE(reply->rawHeader("Access-Control-Allow-Headers").constData(), "Content-Type");
+    }
+
+    void testTimeout()
+    {
+        CountryServerThread serverThread;
+        CountryServer *server = serverThread.startThread();
+
+        KDSoapClientInterface client(server->endPoint(), countryMessageNamespace());
+        client.setTimeout(10);
+        KDSoapPendingCall pendingCall = client.asyncCall(QLatin1String("getEmployeeCountry"), countryMessage(true)); // the server object sleeps for 100ms
+#if QT_VERSION > QT_VERSION_CHECK(5, 0, 0)
+        QTRY_VERIFY(pendingCall.isFinished());
+#else
+        QTest::qWait(50);
+        QVERIFY(pendingCall.isFinished());
+#endif
+        QVERIFY(pendingCall.returnMessage().isFault());
+        QCOMPARE(pendingCall.returnMessage().faultAsString(), QString::fromLatin1("Fault code 4: Operation timed out"));
     }
 
 public Q_SLOTS:

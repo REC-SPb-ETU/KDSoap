@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -27,14 +27,17 @@
 class KDSoapJob::Private
 {
 public:
+    KDSoapHeaders requestHeaders;
     KDSoapMessage reply;
     KDSoapHeaders replyHeaders;
+    bool isAutoDelete;
 };
 
 KDSoapJob::KDSoapJob(QObject *parent)
     : QObject(parent)
     , d(new Private)
 {
+    d->isAutoDelete = true;
 }
 
 KDSoapJob::~KDSoapJob()
@@ -42,9 +45,24 @@ KDSoapJob::~KDSoapJob()
     delete d;
 }
 
+KDSoapHeaders KDSoapJob::requestHeaders() const
+{
+    return d->requestHeaders;
+}
+
+void KDSoapJob::setRequestHeaders(const KDSoapHeaders &headers)
+{
+    d->requestHeaders = headers;
+}
+
 void KDSoapJob::start()
 {
     QMetaObject::invokeMethod(this, "doStart", Qt::QueuedConnection);
+}
+
+void KDSoapJob::setAutoDelete(bool enable)
+{
+    d->isAutoDelete = enable;
 }
 
 void KDSoapJob::emitFinished(const KDSoapMessage &reply, const KDSoapHeaders &replyHeaders)
@@ -52,12 +70,19 @@ void KDSoapJob::emitFinished(const KDSoapMessage &reply, const KDSoapHeaders &re
     d->reply = reply;
     d->replyHeaders = replyHeaders;
     emit finished(this);
-    deleteLater();
+    if (d->isAutoDelete) {
+        deleteLater();
+    }
 }
 
 KDSoapMessage KDSoapJob::reply() const
 {
     return d->reply;
+}
+
+KDSoapHeaders KDSoapJob::replyHeaders() const
+{
+    return d->replyHeaders;
 }
 
 bool KDSoapJob::isFault() const

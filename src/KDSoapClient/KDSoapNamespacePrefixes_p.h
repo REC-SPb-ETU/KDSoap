@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -27,13 +27,16 @@
 #include <QtCore/QXmlStreamWriter>
 
 #include "KDSoapClientInterface.h"
+#include "KDSoapMessageAddressingProperties.h"
 
 class KDSoapNamespacePrefixes : public QMap<QString /*ns*/, QString /*prefix*/>
 {
 public:
     void writeStandardNamespaces(QXmlStreamWriter &writer,
-                                 KDSoapClientInterface::SoapVersion version = KDSoapClientInterface::SOAP1_1,
-                                 bool messageAddressingEnabled = false);
+                                 KDSoap::SoapVersion version = KDSoap::SOAP1_1,
+                                 bool messageAddressingEnabled = false,
+                                 KDSoapMessageAddressingProperties::KDSoapAddressingNamespace messageAddressingNamespace = KDSoapMessageAddressingProperties::Addressing200508
+                                );
 
     void writeNamespace(QXmlStreamWriter &writer, const QString &ns, const QString &prefix)
     {

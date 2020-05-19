@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -29,11 +29,11 @@
 #include <QDebug>
 
 KDSoapMessageWriter::KDSoapMessageWriter()
-    : m_version(KDSoapClientInterface::SOAP1_1)
+    : m_version(KDSoap::SOAP1_1)
 {
 }
 
-void KDSoapMessageWriter::setVersion(KDSoapClientInterface::SoapVersion version)
+void KDSoapMessageWriter::setVersion(KDSoap::SoapVersion version)
 {
     m_version = version;
 }
@@ -44,28 +44,29 @@ void KDSoapMessageWriter::setMessageNamespace(const QString &ns)
 }
 
 QByteArray KDSoapMessageWriter::messageToXml(const KDSoapMessage &message, const QString &method,
-        const KDSoapHeaders &headers, const QMap<QString, KDSoapMessage> &persistentHeaders) const
+        const KDSoapHeaders &headers, const QMap<QString, KDSoapMessage> &persistentHeaders,
+        const KDSoapAuthentication &authentication) const
 {
     QByteArray data;
     QXmlStreamWriter writer(&data);
     writer.writeStartDocument();
 
     KDSoapNamespacePrefixes namespacePrefixes;
-    namespacePrefixes.writeStandardNamespaces(writer, m_version, message.hasMessageAddressingProperties());
+    namespacePrefixes.writeStandardNamespaces(writer, m_version, message.hasMessageAddressingProperties(), message.messageAddressingProperties().addressingNamespace());
 
     QString soapEnvelope;
     QString soapEncoding;
-    if (m_version == KDSoapClientInterface::SOAP1_1) {
+    if (m_version == KDSoap::SOAP1_1) {
         soapEnvelope = KDSoapNamespaceManager::soapEnvelope();
         soapEncoding = KDSoapNamespaceManager::soapEncoding();
-    } else if (m_version == KDSoapClientInterface::SOAP1_2) {
+    } else if (m_version == KDSoap::SOAP1_2) {
         soapEnvelope = KDSoapNamespaceManager::soapEnvelope200305();
         soapEncoding = KDSoapNamespaceManager::soapEncoding200305();
     }
 
     writer.writeStartElement(soapEnvelope, QLatin1String("Envelope"));
 
-    // This has been removed, see http://msdn.microsoft.com/en-us/library/ms995710.aspx for details
+    // This has been removed, see https://msdn.microsoft.com/en-us/library/ms995710.aspx for details
     //writer.writeAttribute(soapEnvelope, QLatin1String("encodingStyle"), soapEncoding);
 
     QString messageNamespace = m_messageNamespace;
@@ -73,7 +74,7 @@ QByteArray KDSoapMessageWriter::messageToXml(const KDSoapMessage &message, const
         messageNamespace = message.namespaceUri();
     }
 
-    if (!headers.isEmpty() || !persistentHeaders.isEmpty() || message.hasMessageAddressingProperties()) {
+    if (!headers.isEmpty() || !persistentHeaders.isEmpty() || message.hasMessageAddressingProperties() || authentication.hasWSUsernameTokenHeader()) {
         // This writeNamespace line adds the xmlns:n1 to <Envelope>, which looks ugly and unusual (and breaks all unittests)
         // However it's the best solution in case of headers, otherwise we get n1 in the header and n2 in the body,
         // and xsi:type attributes that refer to n1, which isn't defined in the body...
@@ -87,6 +88,9 @@ QByteArray KDSoapMessageWriter::messageToXml(const KDSoapMessage &message, const
         }
         if (message.hasMessageAddressingProperties()) {
             message.messageAddressingProperties().writeMessageAddressingProperties(namespacePrefixes, writer, messageNamespace, true);
+        }
+        if (authentication.hasWSUsernameTokenHeader()) {
+            authentication.writeWSUsernameTokenHeader(writer);
         }
         writer.writeEndElement(); // Header
     } else {
@@ -107,7 +111,6 @@ QByteArray KDSoapMessageWriter::messageToXml(const KDSoapMessage &message, const
         }
     } else {
         // Note that the message itself is always qualified.
-        // http://www.ibm.com/developerworks/webservices/library/ws-tip-namespace/index.html
         // isQualified() is only for child elements.
         if (!message.isFault()) {
             writer.writeStartElement(messageNamespace, elementName);
@@ -122,8 +125,5 @@ QByteArray KDSoapMessageWriter::messageToXml(const KDSoapMessage &message, const
     writer.writeEndElement(); // Envelope
     writer.writeEndDocument();
 
-    if (qgetenv("KDSOAP_DEBUG").toInt()) {
-        qDebug() << data;
-    }
     return data;
 }

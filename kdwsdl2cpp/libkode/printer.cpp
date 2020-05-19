@@ -22,6 +22,7 @@
 
 #include <QtCore/QFile>
 #include <QtCore/QStringList>
+#include <QtCore/QTextCodec>
 #include <QtCore/QTextStream>
 #include <QtCore/QFileInfo>
 #include <QDebug>
@@ -59,6 +60,17 @@ class Printer::Private
     QString mGenerator;
     QString mOutputDirectory;
     QString mSourceFile;
+    QStringList mStatementsAfterIncludes;
+
+    /**
+     * @brief printCodeIntoFile
+     * Writes the string passed through the code parameter to the file referenced
+     * by the file parameter in the case if it differs from the content of the file pointed by the
+     * file parameter.
+     * @param code reference to a Code object which contents needs to be printed
+     * @param file the target file in unopened state with filename set
+     */
+    void printCodeIntoFile( const Code &code, QFile *file );
 };
 
 void Printer::Private::addLabel( Code& code, const QString& label )
@@ -376,7 +388,7 @@ QString Printer::Private::classImplementation( const Class &classObject, bool ne
       code.newLine();
       code.indent();
       code += "delete " + classObject.dPointerName() + ";";
-      code += classObject.dPointerName() + " = 0;";
+      code += classObject.dPointerName() + " = nullptr;";
       code.unindent();
     }
     code += '}';
@@ -600,6 +612,10 @@ QString Printer::functionSignature( const Function &function,
   if ( function.isConst() )
     s += " const";
 
+  if ( function.virtualMode() == Function::Override && !forImplementation ) {
+    s += " override";
+  }
+
   if ( function.virtualMode() == Function::PureVirtual )
     s += " = 0";
 
@@ -646,6 +662,11 @@ QString Printer::licenseHeader( const File &file ) const
   }
 
   return code.text();
+}
+
+void Printer::setStatementsAfterIncludes(const QStringList &statements)
+{
+  d->mStatementsAfterIncludes = statements;
 }
 
 static QStringList commonLeft(const QStringList& l1, const QStringList& l2) {
@@ -708,6 +729,10 @@ void Printer::printHeader( const File &file )
   if ( !processed.isEmpty() )
     out.newLine();
 
+  for ( const QString &statement : d->mStatementsAfterIncludes ) {
+      out += statement;
+  }
+
   // Create enums
   Enum::List enums = file.fileEnums();
   Enum::List::ConstIterator enumIt;
@@ -747,7 +772,7 @@ void Printer::printHeader( const File &file )
     }
 
     if (!clas.isNull()) {
-      const bool isQtClass = clas.startsWith(QLatin1Char('Q'));
+      const bool isQtClass = clas.startsWith(QLatin1Char('Q')) && !clas.contains(QLatin1Char('_'));
       if (isQtClass)
         out += QLatin1String("QT_BEGIN_NAMESPACE");
       out += "class " + clas + ';';
@@ -790,16 +815,7 @@ void Printer::printHeader( const File &file )
 //  KSaveFile::simpleBackupFile( filename, QString(), ".backup" );
 
   QFile header( filename );
-  if ( !header.open( QIODevice::WriteOnly ) ) {
-    qWarning( "Can't open '%s' for writing.", qPrintable( filename ) );
-    return;
-  }
-
-  QTextStream h( &header );
-
-  h << out.text();
-
-  header.close();
+  d->printCodeIntoFile( out, &header );
 }
 
 void Printer::printImplementation( const File &file, bool createHeaderInclude )
@@ -931,16 +947,63 @@ void Printer::printImplementation( const File &file, bool createHeaderInclude )
     filename.prepend( d->mOutputDirectory + '/' );
 
   QFile implementation( filename );
-  if ( !implementation.open( QIODevice::WriteOnly ) ) {
-    qWarning( "Can't open '%s' for writing.", qPrintable( filename ) );
-    return;
+  d->printCodeIntoFile( out, &implementation );
+}
+
+void Printer::Private::printCodeIntoFile( const Code &code, QFile *file )
+{
+  const QString outText = code.text();
+  bool identical = true;
+  if ( file->exists() ) {
+    if ( !file->open( QIODevice::ReadOnly ) ) {
+      qWarning( "Can't open '%s' for reading.", qPrintable( file->fileName() ) );
+      return;
+    }
+
+    QTextStream fileReaderStream( file );
+    fileReaderStream.setCodec( QTextCodec::codecForName("UTF-8") );
+
+    QTextStream codeStream( outText.toUtf8() );
+    QString fileLine, outLine;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 5, 0)
+    while ( fileReaderStream.readLineInto( &fileLine ) && codeStream.readLineInto(&outLine) ) {
+      if ( fileLine != outLine ) {
+        identical = false;
+        break;
+      }
+    }
+#else
+    while ( !fileReaderStream.atEnd() && !codeStream.atEnd() ) {
+      fileLine = fileReaderStream.readLine();
+      outLine = codeStream.readLine();
+      if ( fileLine != outLine ) {
+        identical = false;
+        break;
+      }
+    }
+#endif
+
+    if ( identical )
+      identical = fileReaderStream.atEnd() && codeStream.atEnd();
+    file->close();
+  } else {
+    identical = false;
   }
 
-  QTextStream h( &implementation );
+  if ( !identical ) {
+    if ( !file->open( QIODevice::WriteOnly ) ) {
+      qWarning( "Can't open '%s' for writing.", qPrintable( file->fileName() ) );
+      return;
+    }
 
-  h << out.text();
+    QTextStream fileWriterStream( file );
+    fileWriterStream.setCodec( QTextCodec::codecForName("UTF-8") );
+    fileWriterStream << outText;
 
-  implementation.close();
+    file->close();
+  } else {
+    qDebug("Skip generating %s because its content did not change", qPrintable( file->fileName() ));
+  }
 }
 
 #if 0 // TODO: port to cmake

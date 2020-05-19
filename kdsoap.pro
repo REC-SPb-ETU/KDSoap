@@ -66,7 +66,7 @@ CONFIG(debug, debug|release) {
 
 KDSOAPLIB = kdsoap$$VERSION_SUFFIX$$DEBUG_SUFFIX
 KDSOAPSERVERLIB = kdsoap-server$$VERSION_SUFFIX$$DEBUG_SUFFIX
-
+KDWSDL2CPP_LIB = kdwsdl2cpp_lib$$DEBUG_SUFFIX
 
 message(Install prefix is $$INSTALL_PREFIX)
 message(This is KD Soap version $$VERSION)
@@ -88,6 +88,7 @@ windows:INSTALL_PREFIX=$$replace(INSTALL_PREFIX, \\\\, /)
 system('echo INSTALL_PREFIX=$$INSTALL_PREFIX >> $${QMAKE_CACHE}')
 system('echo KDSOAPLIB=$$KDSOAPLIB >> $${QMAKE_CACHE}')
 system('echo KDSOAPSERVERLIB=$$KDSOAPSERVERLIB >> $${QMAKE_CACHE}')
+system('echo KDWSDL2CPP_LIB=$$KDWSDL2CPP_LIB >> $${QMAKE_CACHE}')
 
 # forward make test calls to unittests:
 test.target=test
@@ -101,7 +102,7 @@ QMAKE_EXTRA_TARGETS += test
 
 INSTALL_DOC_DIR = $$INSTALL_PREFIX/share/doc/KDSoap
 # install licenses:
-licenses.files = LICENSE.GPL.txt LICENSE.US.txt LICENSE.txt
+licenses.files = LICENSE.GPL.txt LICENSE.txt
 licenses.path = $$INSTALL_DOC_DIR
 INSTALLS += licenses
 

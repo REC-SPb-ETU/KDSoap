@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -139,16 +139,43 @@ QString KDSoapMessage::faultAsString() const
     } else {
         // This better be on a single line, since it's used by server-side logging too
         const QString actor = childValues().child(QLatin1String("faultactor")).value().toString();
-        return QObject::tr("Fault code %1: %2%3")
-               .arg(childValues().child(QLatin1String("faultcode")).value().toString())
-               .arg(childValues().child(QLatin1String("faultstring")).value().toString())
-               .arg(actor.isEmpty() ? QString() : QString::fromLatin1(" (%1)").arg(actor));
+        QString ret = QObject::tr("Fault code %1: %2%3")
+               .arg(childValues().child(QLatin1String("faultcode")).value().toString(),
+                    childValues().child(QLatin1String("faultstring")).value().toString(),
+                    actor.isEmpty() ? QString() : QString::fromLatin1(" (%1)").arg(actor));
+        const QString detail = childValues().child(QLatin1String("detail")).value().toString();
+        if (!detail.isEmpty()) {
+            if (!ret.endsWith(QLatin1Char('.')))
+                ret += QLatin1Char('.');
+            ret += QLatin1String(" Error detail: ") + detail;
+        }
+        return ret;
     }
 }
 
 void KDSoapMessage::setFault(bool fault)
 {
     d->isFault = fault;
+}
+
+void KDSoapMessage::createFaultMessage(const QString &faultCode, const QString &faultText, KDSoap::SoapVersion soapVersion)
+{
+    *this = KDSoapMessage();
+    setName(QString::fromLatin1("Fault"));
+    d->isFault = true;
+    if (soapVersion == KDSoap::SOAP1_2) {
+        setNamespaceUri(KDSoapNamespaceManager::soapEnvelope200305());
+        KDSoapValueList codeValueList;
+        codeValueList.addArgument(QString::fromLatin1("Value"), faultCode);
+        addArgument(QString::fromLatin1("Code"), codeValueList);
+        KDSoapValueList reasonValueList;
+        reasonValueList.addArgument(QString::fromLatin1("Text"), faultText);
+        addArgument(QString::fromLatin1("Reason"), reasonValueList);
+    } else {
+        setNamespaceUri(KDSoapNamespaceManager::soapEnvelope());
+        addArgument(QString::fromLatin1("faultcode"), faultCode);
+        addArgument(QString::fromLatin1("faultstring"), faultText);
+    }
 }
 
 KDSoapMessageAddressingProperties KDSoapMessage::messageAddressingProperties() const

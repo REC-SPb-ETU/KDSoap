@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -152,6 +152,14 @@ public:
     void setFault(bool fault);
 
     /**
+     * Turns this message into a "fault" message, using the given code and description.
+     * This encapsulates the differences between SOAP 1.1 and 1.2.
+     * Used internally, and by server implementations that handle dynamic calls
+     * \since 1.8
+     */
+    void createFaultMessage(const QString &faultCode, const QString &faultText, KDSoap::SoapVersion soapVersion);
+
+    /**
      * Attach to a KDSoapMessage the message addressing properties that will be written
      * in its header.
      * Calling this will make hasMessageAddressingProperties() return true.
@@ -204,5 +212,6 @@ public:
 KDSOAP_EXPORT QDebug operator<<(QDebug dbg, const KDSoapMessage &msg);
 
 Q_DECLARE_METATYPE(KDSoapMessage)
+Q_DECLARE_METATYPE(KDSoapHeaders)
 
 #endif // KDSOAPMESSAGE_H

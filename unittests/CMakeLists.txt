@@ -71,22 +71,32 @@ add_subdirectory(encapsecurity)
 add_subdirectory(prefix_wsdl)
 add_subdirectory(vidyo)
 add_subdirectory(ws_addressing_support)
+add_subdirectory(ws_usernametoken_support)
 add_subdirectory(empty_element_wsdl)
+add_subdirectory(ws_discovery_wsdl)
+if (Qt5Core_FOUND)
+add_subdirectory(soap_over_udp)
+endif()
 
 # These need internet access
 add_subdirectory(webcalls)
 add_subdirectory(webcalls_wsdl)
 
-# TODO: If boost optional is installed
+if (BOOST_OPTIONAL_FOUND)
 add_subdirectory(optionaltype_boost_optional)
+add_subdirectory(default_attribute_value_wsdl)
+endif()
 
 add_subdirectory(test_calc)
 add_subdirectory(dv_terminalauth)
 add_subdirectory(date_example)
 add_subdirectory(enzo)
-add_subdirectory(default_attribute_value_wsdl)
 add_subdirectory(fault_namespace)
+add_subdirectory(onvif_org_event)
 add_subdirectory(empty_list_wsdl)
 add_subdirectory(list_restriction)
 
+add_subdirectory(kddatetime)
+
 add_subdirectory(QSharedPointer_include)
+add_subdirectory(pki.pca.dfn.de)

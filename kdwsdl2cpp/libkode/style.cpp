@@ -29,12 +29,12 @@ class Style::Private
 };
 
 Style::Style()
-  : d( 0 )
+  : d( nullptr )
 {
 }
 
 Style::Style( const Style &/*other*/ )
-  : d( 0 )
+  : d( nullptr )
 {
 //  *d = *other.d;
 }
@@ -83,6 +83,8 @@ QString Style::lowerFirst( const QString &str )
 
 QString Style::makeIdentifier( const QString &str )
 {
+  Q_ASSERT(!str.isEmpty());
+
   QString identifier = str;
   identifier.replace( "-", "_" );
   identifier.replace( ".", "_" );

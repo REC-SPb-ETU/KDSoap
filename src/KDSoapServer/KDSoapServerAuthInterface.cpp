@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -25,7 +25,7 @@
 #include <KDSoapClient/KDSoapAuthentication.h>
 
 KDSoapServerAuthInterface::KDSoapServerAuthInterface()
-    : d(0)
+    : d(nullptr)
 {
 
 }

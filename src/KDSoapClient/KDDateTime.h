@@ -1,5 +1,5 @@
 /****************************************************************************
-** Copyright (C) 2010-2018 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
+** Copyright (C) 2010-2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com.
 ** All rights reserved.
 **
 ** This file is part of the KD Soap library.
@@ -34,7 +34,7 @@ class KDDateTimeData;
 /**
  * A DateTime class with an additional (optional) timezone.
  *
- * As specified in http://www.w3.org/TR/xmlschema-2/#dateTime, the timezone
+ * As specified in https://www.w3.org/TR/xmlschema-2/#dateTime, the timezone
  * can be empty (local time), "Z" (for UTC) or an offset from UTC like "+05:00" or "-03:00"
  */
 class KDSOAP_EXPORT KDDateTime : public QDateTime
@@ -49,6 +49,13 @@ public:
     /*implicit*/ KDDateTime(const QDateTime &);
     KDDateTime &operator=(const KDDateTime &);
     ~KDDateTime();
+
+    /**
+     * Converts the KDDateTime to QVariant, to avoid implicit conversion
+     * to base QDateTime.
+     * \since 1.8
+     */
+    operator QVariant() const;
 
     /**
      * Returns the time zone set by setTimeZone.
